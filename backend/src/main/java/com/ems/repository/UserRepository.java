@@ -18,6 +18,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     
     Optional<User> findByResetToken(String resetToken);
     
+    boolean existsByResetToken(String resetToken);
+    
     @Query("SELECT u FROM User u WHERE u.roles LIKE %:role%")
     List<User> findByRole(@Param("role") String role);
     

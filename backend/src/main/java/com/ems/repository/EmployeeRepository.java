@@ -33,6 +33,14 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     @Query("SELECT e FROM Employee e WHERE e.email = :email")
     Optional<Employee> findByEmail(@Param("email") String email);
     
+    boolean existsByEmail(String email);
+    
+    Optional<Employee> findByActivationToken(String activationToken);
+    
+    Optional<Employee> findByResetToken(String resetToken);
+    
+    boolean existsByResetToken(String resetToken);
+    
     // Ordered queries for UI display
     @Query("SELECT e FROM Employee e WHERE e.user = :user ORDER BY e.name ASC")
     List<Employee> findByUserOrderByNameAsc(@Param("user") User user);

@@ -2,21 +2,12 @@ package com.ems.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import com.ems.config.JwtTokenUtil;
-import com.ems.dto.AuthRequestDto;
-import com.ems.dto.AuthResponseDto;
+import com.ems.dto.LoginRequestDto;
+import com.ems.dto.TokenResponseDto;
 import com.ems.dto.UserDto;
+import com.ems.exception.AuthenticationException;
 import com.ems.model.User;
 import com.ems.service.AuthService;
 
@@ -27,60 +18,101 @@ import jakarta.validation.Valid;
 public class AuthController {
 
     @Autowired
-    private AuthenticationManager authenticationManager;
-
-    @Autowired
-    private JwtTokenUtil jwtTokenUtil;
-
-    @Autowired
     private AuthService authService;
-
+    
+    /**
+     * Register a new user (manager/account owner)
+     */
     @PostMapping("/register")
-    public ResponseEntity<AuthResponseDto> register(@Valid @RequestBody UserDto userDto) {
+    public ResponseEntity<UserDto> register(@Valid @RequestBody UserDto userDto) {
         User user = authService.registerUser(userDto);
         
-        UserDetails userDetails = authService.loadUserByUsername(user.getEmail());
-        String token = jwtTokenUtil.generateToken(userDetails);
+        UserDto responseDto = new UserDto();
+        responseDto.setId(user.getId());
+        responseDto.setFullName(user.getFullName());
+        responseDto.setEmail(user.getEmail());
+        responseDto.setPhoneNumber(user.getPhoneNumber());
+        responseDto.setCompanyName(user.getCompanyName());
         
-        return ResponseEntity.ok(new AuthResponseDto(
-                user.getId(),
-                user.getFullName(),
-                user.getEmail(),
-                token
-        ));
-    }
-
-    @PostMapping("/login")
-    public ResponseEntity<AuthResponseDto> login(@Valid @RequestBody AuthRequestDto request) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
-        
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        String token = jwtTokenUtil.generateToken(userDetails);
-        
-        User user = authService.getUserByEmail(userDetails.getUsername());
-        
-        return ResponseEntity.ok(new AuthResponseDto(
-                user.getId(),
-                user.getFullName(),
-                user.getEmail(),
-                token
-        ));
+        return ResponseEntity.ok(responseDto);
     }
     
-    @GetMapping("/me")
-    public ResponseEntity<UserDto> getCurrentUser() {
-        User user = authService.getCurrentUser();
-        
-        UserDto userDto = new UserDto();
-        userDto.setId(user.getId());
-        userDto.setFullName(user.getFullName());
-        userDto.setEmail(user.getEmail());
-        userDto.setPhoneNumber(user.getPhoneNumber());
-        userDto.setCompanyName(user.getCompanyName());
-        
-        return ResponseEntity.ok(userDto);
+    /**
+     * Login user or employee
+     */
+    @PostMapping("/login")
+    public ResponseEntity<TokenResponseDto> login(@Valid @RequestBody LoginRequestDto loginRequest) {
+        try {
+            TokenResponseDto tokenResponse = authService.login(loginRequest);
+            return ResponseEntity.ok(tokenResponse);
+        } catch (AuthenticationException e) {
+            return ResponseEntity.status(401).body(null);
+        }
+    }
+    
+    /**
+     * Get current user profile
+     */
+    @GetMapping("/profile")
+    public ResponseEntity<UserDto> getUserProfile() {
+        try {
+            User user = authService.getCurrentUser();
+            
+            UserDto responseDto = new UserDto();
+            responseDto.setId(user.getId());
+            responseDto.setFullName(user.getFullName());
+            responseDto.setEmail(user.getEmail());
+            responseDto.setPhoneNumber(user.getPhoneNumber());
+            responseDto.setCompanyName(user.getCompanyName());
+            
+            return ResponseEntity.ok(responseDto);
+        } catch (AuthenticationException e) {
+            return ResponseEntity.status(401).body(null);
+        }
+    }
+    
+    /**
+     * Activate employee account with token
+     */
+    @PostMapping("/activate")
+    public ResponseEntity<String> activateEmployeeAccount(
+            @RequestParam String token, 
+            @RequestParam String password) {
+        authService.activateEmployeeAccount(token, password);
+        return ResponseEntity.ok("Account activated successfully");
+    }
+    
+    /**
+     * Request password reset token
+     */
+    @PostMapping("/reset-password-request")
+    public ResponseEntity<String> requestPasswordReset(@RequestParam String email) {
+        String token = authService.generatePasswordResetToken(email);
+        return ResponseEntity.ok("Password reset token generated");
+    }
+    
+    /**
+     * Reset password with token
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(
+            @RequestParam String token, 
+            @RequestParam String newPassword) {
+        authService.resetPassword(token, newPassword);
+        return ResponseEntity.ok("Password reset successful");
+    }
+    
+    /**
+     * Check if user is authenticated
+     */
+    @GetMapping("/check")
+    public ResponseEntity<String> checkAuthentication() {
+        if (authService.isManager()) {
+            return ResponseEntity.ok("ROLE_MANAGER");
+        } else if (authService.isEmployee()) {
+            return ResponseEntity.ok("ROLE_EMPLOYEE");
+        } else {
+            return ResponseEntity.status(401).body("Not authenticated");
+        }
     }
 }

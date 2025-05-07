@@ -3,7 +3,9 @@ package com.ems.model;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import jakarta.persistence.*;
 
@@ -34,6 +36,33 @@ public class Employee {
 
     @Column(nullable = false)
     private String role;
+    
+    // Authentication related fields
+    @Column(name = "password_hash")
+    private String passwordHash;
+    
+    @Column(name = "is_account_activated", nullable = false)
+    private boolean isAccountActivated = false;
+    
+    @Column(name = "activation_token")
+    private String activationToken;
+    
+    @Column(name = "activation_token_expiry")
+    private LocalDateTime activationTokenExpiry;
+    
+    @Column(name = "reset_token")
+    private String resetToken;
+    
+    @Column(name = "reset_token_expiry")
+    private LocalDateTime resetTokenExpiry;
+    
+    @Column(name = "last_login")
+    private LocalDateTime lastLogin;
+    
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "employee_roles", joinColumns = @JoinColumn(name = "employee_id"))
+    @Column(name = "role")
+    private Set<String> authRoles = new HashSet<>();
 
     @Enumerated(EnumType.STRING)
     @Column(name = "contract_type", nullable = false)
@@ -338,5 +367,82 @@ public class Employee {
     public LocalDate getInactiveTo() {
         EmployeeInactivity inactivity = getCurrentInactivityPeriod();
         return inactivity != null ? inactivity.getEndDate() : null;
+    }
+    
+    // Authentication-related getters and setters
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
+    public boolean isAccountActivated() {
+        return isAccountActivated;
+    }
+
+    public void setAccountActivated(boolean isAccountActivated) {
+        this.isAccountActivated = isAccountActivated;
+    }
+
+    public String getActivationToken() {
+        return activationToken;
+    }
+
+    public void setActivationToken(String activationToken) {
+        this.activationToken = activationToken;
+    }
+
+    public LocalDateTime getActivationTokenExpiry() {
+        return activationTokenExpiry;
+    }
+
+    public void setActivationTokenExpiry(LocalDateTime activationTokenExpiry) {
+        this.activationTokenExpiry = activationTokenExpiry;
+    }
+
+    public String getResetToken() {
+        return resetToken;
+    }
+
+    public void setResetToken(String resetToken) {
+        this.resetToken = resetToken;
+    }
+
+    public LocalDateTime getResetTokenExpiry() {
+        return resetTokenExpiry;
+    }
+
+    public void setResetTokenExpiry(LocalDateTime resetTokenExpiry) {
+        this.resetTokenExpiry = resetTokenExpiry;
+    }
+
+    public LocalDateTime getLastLogin() {
+        return lastLogin;
+    }
+
+    public void setLastLogin(LocalDateTime lastLogin) {
+        this.lastLogin = lastLogin;
+    }
+
+    public Set<String> getAuthRoles() {
+        return authRoles;
+    }
+
+    public void setAuthRoles(Set<String> authRoles) {
+        this.authRoles = authRoles;
+    }
+    
+    public void addAuthRole(String role) {
+        this.authRoles.add(role.toUpperCase());
+    }
+    
+    public boolean hasAuthRole(String role) {
+        return this.authRoles.contains(role.toUpperCase());
+    }
+    
+    public void updateLastLogin() {
+        this.lastLogin = LocalDateTime.now();
     }
 }
