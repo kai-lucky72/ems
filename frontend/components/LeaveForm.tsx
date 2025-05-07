@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { LeaveFormData } from '@/types';
+import { useState } from 'react';
 
 interface Employee {
   id: number;
@@ -18,195 +17,149 @@ interface LeaveFormProps {
   onCancel: () => void;
 }
 
-const LeaveForm: React.FC<LeaveFormProps> = ({
-  employees,
-  onSubmit,
-  onCancel,
-}) => {
-  const [formData, setFormData] = useState<LeaveFormData>({
-    employeeId: 0,
+const LeaveForm: React.FC<LeaveFormProps> = ({ employees, onSubmit, onCancel }) => {
+  const [formData, setFormData] = useState({
+    employeeId: employees.length > 0 ? employees[0].id : 0,
     startDate: '',
     endDate: '',
     reason: '',
   });
-  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [leaveDuration, setLeaveDuration] = useState(0);
 
-  // Initialize form with first employee if available
-  useEffect(() => {
-    if (employees.length > 0) {
-      setFormData(prev => ({
-        ...prev,
-        employeeId: employees[0].id,
-      }));
-    }
-  }, [employees]);
-
-  // Calculate leave duration when dates change
-  useEffect(() => {
-    if (formData.startDate && formData.endDate) {
-      const start = new Date(formData.startDate);
-      const end = new Date(formData.endDate);
-      
-      // Calculate the difference in days
-      const diffTime = Math.abs(end.getTime() - start.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end dates
-      
-      setLeaveDuration(diffDays);
-    } else {
-      setLeaveDuration(0);
-    }
-  }, [formData.startDate, formData.endDate]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
+    
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'employeeId' ? parseInt(value, 10) : value,
+      [name]: name === 'employeeId' ? Number(value) : value
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate dates
+    if (new Date(formData.startDate) > new Date(formData.endDate)) {
+      setError('End date cannot be before start date');
+      return;
+    }
+    
+    if (!formData.reason.trim()) {
+      setError('Reason is required');
+      return;
+    }
+    
     setLoading(true);
     setError('');
 
     try {
-      // Validate form data
-      if (formData.employeeId === 0) {
-        throw new Error('Please select an employee');
-      }
-
-      if (!formData.startDate) {
-        throw new Error('Start date is required');
-      }
-
-      if (!formData.endDate) {
-        throw new Error('End date is required');
-      }
-
-      const startDate = new Date(formData.startDate);
-      const endDate = new Date(formData.endDate);
-
-      if (endDate < startDate) {
-        throw new Error('End date cannot be before start date');
-      }
-
-      if (!formData.reason.trim()) {
-        throw new Error('Reason for leave is required');
-      }
-
       await onSubmit(formData);
     } catch (err: any) {
-      setError(err.message || 'Failed to save leave request');
+      setError(err.message || 'Failed to submit leave request. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
           {error}
         </div>
       )}
 
-      <div className="space-y-4">
-        <div>
-          <label htmlFor="employeeId" className="label">
-            Employee
-          </label>
+      <div>
+        <label htmlFor="employeeId" className="block text-sm font-medium text-gray-700">
+          Employee
+        </label>
+        <div className="mt-1">
           <select
             id="employeeId"
             name="employeeId"
             value={formData.employeeId}
             onChange={handleChange}
-            className="input"
+            className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
             required
           >
-            <option value="">Select Employee</option>
-            {employees.map((employee) => (
+            {employees.map(employee => (
               <option key={employee.id} value={employee.id}>
-                {employee.name} - {employee.departmentName}
+                {employee.name} ({employee.departmentName})
               </option>
             ))}
           </select>
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="startDate" className="label">
-              Start Date
-            </label>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label htmlFor="startDate" className="block text-sm font-medium text-gray-700">
+            Start Date
+          </label>
+          <div className="mt-1">
             <input
+              type="date"
               id="startDate"
               name="startDate"
-              type="date"
-              required
               value={formData.startDate}
               onChange={handleChange}
-              className="input"
-              min={new Date().toISOString().split('T')[0]} // Prevent selecting past dates
+              className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
+              required
+              min={new Date().toISOString().split('T')[0]}
             />
           </div>
-
-          <div>
-            <label htmlFor="endDate" className="label">
-              End Date
-            </label>
+        </div>
+        <div>
+          <label htmlFor="endDate" className="block text-sm font-medium text-gray-700">
+            End Date
+          </label>
+          <div className="mt-1">
             <input
+              type="date"
               id="endDate"
               name="endDate"
-              type="date"
-              required
               value={formData.endDate}
               onChange={handleChange}
-              className="input"
+              className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
+              required
               min={formData.startDate || new Date().toISOString().split('T')[0]}
             />
           </div>
         </div>
+      </div>
 
-        {leaveDuration > 0 && (
-          <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
-            <span className="text-sm font-medium">
-              Duration: <span className="text-blue-700">{leaveDuration} day{leaveDuration !== 1 ? 's' : ''}</span>
-            </span>
-          </div>
-        )}
-
-        <div>
-          <label htmlFor="reason" className="label">
-            Reason for Leave
-          </label>
+      <div>
+        <label htmlFor="reason" className="block text-sm font-medium text-gray-700">
+          Reason for Leave
+        </label>
+        <div className="mt-1">
           <textarea
             id="reason"
             name="reason"
-            required
+            rows={3}
             value={formData.reason}
             onChange={handleChange}
-            rows={4}
-            className="input"
-            placeholder="Please provide details about your leave request..."
-          ></textarea>
+            className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
+            required
+          />
         </div>
       </div>
 
-      <div className="flex justify-end space-x-3">
+      <div className="flex justify-end space-x-3 pt-4">
         <button
           type="button"
           onClick={onCancel}
-          className="btn border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+          className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="btn btn-primary"
+          className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
         >
           {loading ? 'Submitting...' : 'Submit Leave Request'}
         </button>
