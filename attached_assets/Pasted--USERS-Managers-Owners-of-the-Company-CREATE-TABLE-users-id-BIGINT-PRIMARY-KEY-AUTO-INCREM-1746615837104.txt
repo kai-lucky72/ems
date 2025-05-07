@@ -1,0 +1,91 @@
+-- USERS (Managers/Owners of the Company)
+CREATE TABLE users (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    full_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    phone VARCHAR(20),
+    company_name VARCHAR(100) NOT NULL,
+    password_hash TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- DEPARTMENTS
+CREATE TABLE departments (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    budget_amount DECIMAL(15,2) NOT NULL,
+    budget_type ENUM('monthly', 'yearly') DEFAULT 'monthly',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- EMPLOYEES
+CREATE TABLE employees (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    department_id BIGINT,
+    full_name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    phone VARCHAR(20),
+    role VARCHAR(50) NOT NULL,
+    contract_type ENUM('full-time', 'part-time', 'remote') NOT NULL,
+    contract_start DATE NOT NULL,
+    contract_end DATE,
+    status ENUM('active', 'inactive') DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (department_id) REFERENCES departments(id)
+);
+
+-- EMPLOYEE_INACTIVITY_LOG
+CREATE TABLE employee_inactivity (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    employee_id BIGINT NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE,
+    reason TEXT,
+    FOREIGN KEY (employee_id) REFERENCES employees(id)
+);
+
+-- SALARY CONFIG
+CREATE TABLE salaries (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    employee_id BIGINT NOT NULL,
+    gross_salary DECIMAL(12,2) NOT NULL,
+    tax_deduction DECIMAL(12,2) DEFAULT 0.0,
+    insurance_deduction DECIMAL(12,2) DEFAULT 0.0,
+    other_deductions DECIMAL(12,2) DEFAULT 0.0,
+    net_salary DECIMAL(12,2) GENERATED ALWAYS AS (
+        gross_salary - tax_deduction - insurance_deduction - other_deductions
+    ) STORED,
+    salary_month YEAR(4) NOT NULL,
+    salary_year YEAR NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES employees(id)
+);
+
+-- LEAVE REQUESTS
+CREATE TABLE leave_requests (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    employee_id BIGINT NOT NULL,
+    request_date DATE NOT NULL,
+    leave_start DATE NOT NULL,
+    leave_end DATE NOT NULL,
+    reason TEXT,
+    status ENUM('approved', 'denied', 'pending') DEFAULT 'pending',
+    decision_date TIMESTAMP,
+    FOREIGN KEY (employee_id) REFERENCES employees(id)
+);
+
+-- MESSAGES (EMAIL LOG)
+CREATE TABLE messages (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    sender_user_id BIGINT NOT NULL,
+    recipient_employee_id BIGINT NOT NULL,
+    subject VARCHAR(150),
+    body TEXT,
+    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sender_user_id) REFERENCES users(id),
+    FOREIGN KEY (recipient_employee_id) REFERENCES employees(id)
+);

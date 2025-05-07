@@ -1,12 +1,9 @@
 import { useState, useEffect } from 'react';
-import Head from 'next/head';
-import { 
-  fetchEmployees, 
-  fetchLeaves, 
-  createLeave, 
-  updateLeaveStatus 
-} from '../../lib/api';
-import LeaveForm from '../../components/LeaveForm';
+import { NextPage } from 'next';
+import Layout from '@/components/Layout';
+import LeaveForm from '@/components/LeaveForm';
+import { fetchEmployees, fetchLeaves, createLeave, updateLeaveStatus } from '@/lib/api';
+import { Leave, LeaveFormData, LeaveStatusFormData } from '@/types';
 
 interface Employee {
   id: number;
@@ -15,48 +12,41 @@ interface Employee {
   isActive: boolean;
 }
 
-interface Leave {
-  id: number;
-  employeeId: number;
-  employeeName: string;
-  startDate: string;
-  endDate: string;
-  reason: string;
-  status: 'PENDING' | 'APPROVED' | 'DENIED';
-  createdAt: string;
-}
-
-const LeavePage = () => {
+const LeavePage: NextPage = () => {
   const [leaves, setLeaves] = useState<Leave[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [filterStatus, setFilterStatus] = useState<string>('ALL');
-  const [filterEmployee, setFilterEmployee] = useState<number>(0);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const [employeesData, leavesData] = await Promise.all([
-        fetchEmployees(),
-        fetchLeaves()
-      ]);
-      setEmployees(employeesData);
-      setLeaves(leavesData);
-      setError('');
-    } catch (err: any) {
-      setError(err.message || 'Failed to load data');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
 
   useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        // Mock data for development until backend is connected
+        const mockLeaves: Leave[] = [];
+        const mockEmployees: Employee[] = [
+          { id: 1, name: 'John Doe', departmentName: 'Engineering', isActive: true },
+          { id: 2, name: 'Jane Smith', departmentName: 'Marketing', isActive: true }
+        ];
+        
+        setLeaves(mockLeaves);
+        setEmployees(mockEmployees);
+        setError('');
+      } catch (err: any) {
+        console.error('Failed to fetch data:', err);
+        setError('Failed to load leave data. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     loadData();
   }, []);
 
-  const handleOpenForm = () => {
+  const handleAddLeave = () => {
     setIsFormOpen(true);
   };
 
@@ -64,195 +54,226 @@ const LeavePage = () => {
     setIsFormOpen(false);
   };
 
-  const handleSubmit = async (formData: { 
-    employeeId: number;
-    startDate: string;
-    endDate: string;
-    reason: string;
-  }) => {
+  const handleSubmitLeaveForm = async (formData: LeaveFormData) => {
     try {
-      await createLeave(formData);
-      handleCloseForm();
-      await loadData();
+      const newLeave = await createLeave(formData);
+      setLeaves(prev => [...prev, newLeave]);
+      setIsFormOpen(false);
     } catch (err: any) {
-      setError(err.message || 'Failed to save leave request');
+      throw new Error(err.response?.data?.message || 'Failed to create leave request');
     }
   };
 
-  const handleStatusChange = async (leaveId: number, status: 'APPROVED' | 'DENIED') => {
+  const handleUpdateLeaveStatus = async (id: number, status: 'APPROVED' | 'DENIED') => {
     try {
-      await updateLeaveStatus(leaveId, { status });
-      await loadData();
+      const statusData: LeaveStatusFormData = { status };
+      const updatedLeave = await updateLeaveStatus(id, statusData);
+      setLeaves(prev => prev.map(leave => leave.id === id ? updatedLeave : leave));
     } catch (err: any) {
-      setError(err.message || 'Failed to update leave status');
+      console.error('Failed to update leave status:', err);
+      setError(err.response?.data?.message || 'Failed to update leave status');
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
-  };
-
-  // Apply filters
+  // Filter leaves based on search query and status filter
   const filteredLeaves = leaves.filter(leave => {
-    if (filterStatus !== 'ALL' && leave.status !== filterStatus) {
-      return false;
-    }
-    if (filterEmployee !== 0 && leave.employeeId !== filterEmployee) {
-      return false;
-    }
-    return true;
+    const matchesSearch = 
+      leave.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      leave.reason.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesStatus = filterStatus === '' || leave.status === filterStatus;
+    
+    return matchesSearch && matchesStatus;
   });
 
-  const getStatusClass = (status: string) => {
+  // Format date to a readable format
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  // Calculate duration between two dates
+  const calculateDuration = (startDate: string, endDate: string) => {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // Include both start and end day
+    return diffDays;
+  };
+
+  // Get status badge class
+  const getStatusBadgeClass = (status: string) => {
     switch (status) {
-      case 'APPROVED': return 'bg-green-100 text-green-800 border-green-300';
-      case 'DENIED': return 'bg-red-100 text-red-800 border-red-300';
-      default: return 'bg-yellow-100 text-yellow-800 border-yellow-300';
+      case 'APPROVED':
+        return 'bg-green-100 text-green-800';
+      case 'DENIED':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-yellow-100 text-yellow-800';
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Head>
-        <title>Leave Management | Employee Management System</title>
-      </Head>
-
-      <div className="py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 flex justify-between items-center">
-          <h1 className="text-2xl font-semibold text-gray-900">Leave Management</h1>
+    <Layout>
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-2xl font-bold">Leave Management</h1>
           <button
-            onClick={handleOpenForm}
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            onClick={handleAddLeave}
+            className="mt-3 sm:mt-0 btn btn-primary"
           >
-            Add Leave Request
+            Request Leave
           </button>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 mt-6">
-          {error && (
-            <div className="mb-4 p-4 bg-red-100 border-l-4 border-red-500 text-red-700">
-              {error}
-            </div>
-          )}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+            {error}
+          </div>
+        )}
 
-          {/* Filters */}
-          <div className="bg-white p-4 rounded-lg shadow mb-6 flex flex-wrap gap-4 items-center">
-            <div>
-              <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 mb-1">
-                Status
-              </label>
-              <select
-                id="status-filter"
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-              >
-                <option value="ALL">All Statuses</option>
-                <option value="PENDING">Pending</option>
-                <option value="APPROVED">Approved</option>
-                <option value="DENIED">Denied</option>
-              </select>
-            </div>
-            <div>
-              <label htmlFor="employee-filter" className="block text-sm font-medium text-gray-700 mb-1">
-                Employee
-              </label>
-              <select
-                id="employee-filter"
-                value={filterEmployee}
-                onChange={(e) => setFilterEmployee(Number(e.target.value))}
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-              >
-                <option value="0">All Employees</option>
-                {employees.map(employee => (
-                  <option key={employee.id} value={employee.id}>
-                    {employee.name}
-                  </option>
-                ))}
-              </select>
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="p-4 border-b">
+            <div className="flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-4">
+              <div className="flex-1">
+                <input
+                  type="text"
+                  placeholder="Search by employee or reason..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="input"
+                />
+              </div>
+              <div className="w-full md:w-64">
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="input"
+                >
+                  <option value="">All Status</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="APPROVED">Approved</option>
+                  <option value="DENIED">Denied</option>
+                </select>
+              </div>
             </div>
           </div>
 
           {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-blue-500"></div>
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
             </div>
           ) : filteredLeaves.length === 0 ? (
-            <div className="bg-white shadow overflow-hidden sm:rounded-md">
-              <div className="px-4 py-5 sm:p-6 text-center">
-                <p className="text-gray-500">No leave requests found.</p>
-              </div>
+            <div className="p-6 text-center text-gray-500">
+              No leave requests found matching your criteria.
             </div>
           ) : (
-            <div className="bg-white shadow overflow-hidden sm:rounded-md">
-              <ul className="divide-y divide-gray-200">
-                {filteredLeaves.map((leave) => (
-                  <li key={leave.id}>
-                    <div className="px-4 py-4 sm:px-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center">
-                            <h3 className="text-lg font-medium text-gray-900 mr-3">
-                              {leave.employeeName}
-                            </h3>
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusClass(leave.status)}`}>
-                              {leave.status}
-                            </span>
-                          </div>
-                          <div className="mt-2 flex flex-col sm:flex-row sm:flex-wrap sm:mt-0 sm:space-x-6">
-                            <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                              <span className="mr-1">Period:</span>
-                              <span className="font-medium">
-                                {formatDate(leave.startDate)} - {formatDate(leave.endDate)}
-                              </span>
-                            </div>
-                            <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                              <span className="mr-1">Requested on:</span>
-                              <span className="font-medium">{formatDate(leave.createdAt)}</span>
-                            </div>
-                          </div>
-
-                          {/* Reason */}
-                          <div className="mt-3">
-                            <h4 className="text-sm font-medium text-gray-700">Reason:</h4>
-                            <p className="mt-1 text-sm text-gray-500">{leave.reason}</p>
-                          </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Employee
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Leave Period
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Duration
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Reason
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredLeaves.map((leave) => (
+                    <tr key={leave.id}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">{leave.employeeName}</div>
+                        <div className="text-xs text-gray-500">{formatDate(leave.createdAt)}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {formatDate(leave.startDate)} - {formatDate(leave.endDate)}
                         </div>
-                        
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {calculateDuration(leave.startDate, leave.endDate)} days
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-900 max-w-xs line-clamp-2">
+                          {leave.reason}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(leave.status)}`}>
+                          {leave.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
                         {leave.status === 'PENDING' && (
-                          <div className="ml-4 flex-shrink-0 flex">
+                          <div className="flex space-x-2">
                             <button
-                              onClick={() => handleStatusChange(leave.id, 'APPROVED')}
-                              className="mr-2 inline-flex items-center px-3 py-1 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                              onClick={() => handleUpdateLeaveStatus(leave.id, 'APPROVED')}
+                              className="text-green-600 hover:text-green-900"
                             >
                               Approve
                             </button>
                             <button
-                              onClick={() => handleStatusChange(leave.id, 'DENIED')}
-                              className="inline-flex items-center px-3 py-1 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                              onClick={() => handleUpdateLeaveStatus(leave.id, 'DENIED')}
+                              className="text-red-600 hover:text-red-900"
                             >
                               Deny
                             </button>
                           </div>
                         )}
-                      </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
       </div>
 
+      {/* Leave Request Form Modal */}
       {isFormOpen && (
-        <LeaveForm
-          employees={employees.filter(emp => emp.isActive)}
-          onSubmit={handleSubmit}
-          onCancel={handleCloseForm}
-        />
+        <div className="fixed inset-0 overflow-y-auto z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold">Request Leave</h2>
+              <button
+                onClick={handleCloseForm}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <LeaveForm
+              employees={employees}
+              onSubmit={handleSubmitLeaveForm}
+              onCancel={handleCloseForm}
+            />
+          </div>
+        </div>
       )}
-    </div>
+    </Layout>
   );
 };
 

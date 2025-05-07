@@ -1,0 +1,46 @@
++----------------+          +----------------+          +----------------+
+|     Users      |          |  Departments   |          |   Employees    |
++----------------+          +----------------+          +----------------+
+| id (PK)        |<---------| id (PK)        |<---------| id (PK)        |
+| full_name      |          | user_id (FK)   |          | user_id (FK)   |
+| email          |          | name           |          | department_id  |
+| phone          |          | budget_amount  |          | full_name      |
+| company_name   |          | budget_type    |          | email          |
+| password_hash  |          | created_at     |          | phone          |
+| created_at     |          +----------------+          | role           |
++----------------+                                     | contract_type  |
+                                                       | contract_start |
+                                                       | contract_end   |
+                                                       | status         |
+                                                       | created_at     |
+                                                       +----------------+
+                                                               |
+                                                               |
+                                                               v
+                                                       +----------------+
+                                                       |  Salaries      |
+                                                       +----------------+
+                                                       | id (PK)        |
+                                                       | employee_id(FK)|
+                                                       | gross_salary   |
+                                                       | tax_deduction  |
+                                                       | insurance_deduct|
+                                                       | other_deductions|
+                                                       | net_salary     |
+                                                       | salary_month   |
+                                                       | salary_year    |
+                                                       | created_at     |
+                                                       +----------------+
+
++----------------+          +----------------+          +----------------+
+| Employee       |<---------| Leave Requests |          | Messages       |
+| Inactivity     |          +----------------+          +----------------+
++----------------+          | id (PK)        |          | id (PK)        |
+| id (PK)        |          | employee_id(FK)|          | sender_user_id |
+| employee_id(FK)|          | request_date   |          | recipient_emp_id|
+| start_date     |          | leave_start    |          | subject        |
+| end_date       |          | leave_end      |          | body           |
+| reason         |          | reason         |          | sent_at        |
++----------------+          | status         |          +----------------+
+                            | decision_date  |
+                            +----------------+

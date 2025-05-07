@@ -2,16 +2,8 @@ import { useState, useEffect } from 'react';
 import { NextPage } from 'next';
 import Layout from '@/components/Layout';
 import SalaryForm from '@/components/SalaryForm';
-import { fetchEmployees, fetchSalaries, fetchSalaryByEmployee, createSalary, updateSalary } from '@/lib/api';
-import { Salary, Deduction, SalaryFormData } from '@/types';
-
-interface Employee {
-  id: number;
-  name: string;
-  departmentName: string;
-  role: string;
-  isActive: boolean;
-}
+import { fetchEmployees, fetchSalaries, createSalary, updateSalary } from '@/lib/api';
+import { Salary, Employee, SalaryFormData } from '@/types';
 
 const SalaryPage: NextPage = () => {
   const [salaries, setSalaries] = useState<Salary[]>([]);
@@ -29,16 +21,20 @@ const SalaryPage: NextPage = () => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const [salariesData, employeesData] = await Promise.all([
-          fetchSalaries(),
-          fetchEmployees(),
-        ]);
+        // For development without backend
+        const mockSalaries: Salary[] = [];
+        const mockEmployees: Employee[] = [];
         
-        setSalaries(salariesData);
-        setEmployees(employeesData);
+        setSalaries(mockSalaries);
+        setEmployees(mockEmployees);
         
         // Extract unique departments for filtering
-        const departments = [...new Set(employeesData.map(emp => emp.departmentName))];
+        const departments: string[] = [];
+        mockEmployees.forEach((emp: Employee) => {
+          if (emp.departmentName && !departments.includes(emp.departmentName)) {
+            departments.push(emp.departmentName);
+          }
+        });
         setDepartmentFilters(departments);
         
         setError('');

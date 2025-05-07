@@ -84,7 +84,9 @@ const SalaryForm: React.FC<SalaryFormProps> = ({
   };
 
   const handleNewDeductionChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value, type } = e.target;
+    const checked = type === 'checkbox' ? (e.target as HTMLInputElement).checked : undefined;
+    
     setNewDeduction(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : 

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { LeaveFormData } from '@/types';
 
 interface Employee {
   id: number;
@@ -20,148 +21,197 @@ interface LeaveFormProps {
 const LeaveForm: React.FC<LeaveFormProps> = ({
   employees,
   onSubmit,
-  onCancel
+  onCancel,
 }) => {
-  const [formData, setFormData] = useState<{
-    employeeId: number;
-    startDate: string;
-    endDate: string;
-    reason: string;
-  }>({
-    employeeId: employees.length > 0 ? employees[0].id : 0,
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: new Date().toISOString().split('T')[0],
-    reason: ''
+  const [formData, setFormData] = useState<LeaveFormData>({
+    employeeId: 0,
+    startDate: '',
+    endDate: '',
+    reason: '',
   });
+  
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [leaveDuration, setLeaveDuration] = useState(0);
+
+  // Initialize form with first employee if available
+  useEffect(() => {
+    if (employees.length > 0) {
+      setFormData(prev => ({
+        ...prev,
+        employeeId: employees[0].id,
+      }));
+    }
+  }, [employees]);
+
+  // Calculate leave duration when dates change
+  useEffect(() => {
+    if (formData.startDate && formData.endDate) {
+      const start = new Date(formData.startDate);
+      const end = new Date(formData.endDate);
+      
+      // Calculate the difference in days
+      const diffTime = Math.abs(end.getTime() - start.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end dates
+      
+      setLeaveDuration(diffDays);
+    } else {
+      setLeaveDuration(0);
+    }
+  }, [formData.startDate, formData.endDate]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'employeeId' ? parseInt(value) : value
+      [name]: name === 'employeeId' ? parseInt(value, 10) : value,
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    setError('');
+
     try {
+      // Validate form data
+      if (formData.employeeId === 0) {
+        throw new Error('Please select an employee');
+      }
+
+      if (!formData.startDate) {
+        throw new Error('Start date is required');
+      }
+
+      if (!formData.endDate) {
+        throw new Error('End date is required');
+      }
+
+      const startDate = new Date(formData.startDate);
+      const endDate = new Date(formData.endDate);
+
+      if (endDate < startDate) {
+        throw new Error('End date cannot be before start date');
+      }
+
+      if (!formData.reason.trim()) {
+        throw new Error('Reason for leave is required');
+      }
+
       await onSubmit(formData);
-    } catch (error) {
-      console.error('Error submitting leave form:', error);
+    } catch (err: any) {
+      setError(err.message || 'Failed to save leave request');
+    } finally {
+      setLoading(false);
     }
   };
 
-  if (employees.length === 0) {
-    return (
-      <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Error</h3>
-          <p className="text-red-500">No active employees available.</p>
-          <div className="mt-6 flex justify-end">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Add Leave Request</h3>
-        
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label htmlFor="employeeId" className="block text-sm font-medium text-gray-700 mb-1">
-              Employee
-            </label>
-            <select
-              id="employeeId"
-              name="employeeId"
-              value={formData.employeeId}
-              onChange={handleChange}
-              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-              required
-            >
-              {employees.map(employee => (
-                <option key={employee.id} value={employee.id}>
-                  {employee.name} - {employee.departmentName}
-                </option>
-              ))}
-            </select>
-          </div>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          {error}
+        </div>
+      )}
 
-          <div className="mb-4">
-            <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">
+      <div className="space-y-4">
+        <div>
+          <label htmlFor="employeeId" className="label">
+            Employee
+          </label>
+          <select
+            id="employeeId"
+            name="employeeId"
+            value={formData.employeeId}
+            onChange={handleChange}
+            className="input"
+            required
+          >
+            <option value="">Select Employee</option>
+            {employees.map((employee) => (
+              <option key={employee.id} value={employee.id}>
+                {employee.name} - {employee.departmentName}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label htmlFor="startDate" className="label">
               Start Date
             </label>
             <input
-              type="date"
               id="startDate"
               name="startDate"
+              type="date"
+              required
               value={formData.startDate}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              required
+              className="input"
+              min={new Date().toISOString().split('T')[0]} // Prevent selecting past dates
             />
           </div>
 
-          <div className="mb-4">
-            <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-1">
+          <div>
+            <label htmlFor="endDate" className="label">
               End Date
             </label>
             <input
-              type="date"
               id="endDate"
               name="endDate"
+              type="date"
+              required
               value={formData.endDate}
               onChange={handleChange}
-              min={formData.startDate}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              required
+              className="input"
+              min={formData.startDate || new Date().toISOString().split('T')[0]}
             />
           </div>
+        </div>
 
-          <div className="mb-4">
-            <label htmlFor="reason" className="block text-sm font-medium text-gray-700 mb-1">
-              Reason
-            </label>
-            <textarea
-              id="reason"
-              name="reason"
-              rows={3}
-              value={formData.reason}
-              onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              required
-            ></textarea>
+        {leaveDuration > 0 && (
+          <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
+            <span className="text-sm font-medium">
+              Duration: <span className="text-blue-700">{leaveDuration} day{leaveDuration !== 1 ? 's' : ''}</span>
+            </span>
           </div>
+        )}
 
-          <div className="mt-6 flex justify-end space-x-3">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Submit
-            </button>
-          </div>
-        </form>
+        <div>
+          <label htmlFor="reason" className="label">
+            Reason for Leave
+          </label>
+          <textarea
+            id="reason"
+            name="reason"
+            required
+            value={formData.reason}
+            onChange={handleChange}
+            rows={4}
+            className="input"
+            placeholder="Please provide details about your leave request..."
+          ></textarea>
+        </div>
       </div>
-    </div>
+
+      <div className="flex justify-end space-x-3">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="btn border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={loading}
+          className="btn btn-primary"
+        >
+          {loading ? 'Submitting...' : 'Submit Leave Request'}
+        </button>
+      </div>
+    </form>
   );
 };
 
