@@ -1,0 +1,134 @@
+1. Registration & Authentication
+Landing Page
+
+User sees “Register” and “Login” options.
+
+Register
+
+User enters full name, phone, email, company name, password.
+
+System validates inputs (email format, password strength).
+
+On success, account is created, confirmation email sent.
+
+Login
+
+User submits email + password.
+
+Backend verifies credentials, issues JWT.
+
+JWT stored in secure HTTP‑only cookie or localStorage.
+
+Session Validation
+
+Each API call carries JWT.
+
+If expired/invalid, user is redirected to login.
+
+2. Dashboard Entry
+Upon login, user lands on Dashboard:
+
+Overview cards (departments, employees, budget usage).
+
+Quick‑actions: Create Department, Add Employee, Send Message.
+
+3. Department Management
+Create Department
+
+Click “New Department,” enter name, budget amount, budget type (monthly/yearly).
+
+System persists department under user’s account.
+
+Edit/Delete Department
+
+From list, choose Edit or Delete.
+
+Deletion cascades to employees’ department_id = NULL.
+
+Budget Alert
+
+If salary spend > budget, department row highlights in red.
+
+4. Employee Management
+Add Employee
+
+Enter name, email, phone, role, department, contract type & dates, status.
+
+System sends invitation email with default credentials reset link.
+
+View/Edit Employee
+
+Modify details or toggle Active/Inactive.
+
+Inactive periods auto‑logged.
+
+Inactivity Log
+
+Manager can manually record inactivity with reason and dates.
+
+5. Salary Management
+Configure Salary
+
+For each employee, enter gross salary and deduction items (tax, insurance, custom).
+
+System computes net salary and stores record with month/year.
+
+Budget Check
+
+On save, system sums all net salaries in that department for month; rejects if > budget.
+
+Review Payroll History
+
+View past salary runs, export to PDF/Excel.
+
+6. Leave Management
+Submit Leave Request
+
+Manager selects employee, dates, reason → status = “pending.”
+
+Approve/Deny
+
+Manager reviews requests list, clicks Approve or Deny.
+
+System records decision date, updates employee’s calendar status.
+
+View Leave History
+
+Filter by employee, date range, status.
+
+7. Messaging System
+Compose Message
+
+Select recipient (autocomplete employee name/email).
+
+Enter subject & body.
+
+Send
+
+System uses manager’s SMTP/SendGrid credentials to dispatch email.
+
+Log stored in Messages table.
+
+Inbox/History
+
+View sent messages, search by employee or date.
+
+8. Analytics & Reporting
+Real‑time Charts on dashboard:
+
+Budget Utilization (per department)
+
+Salary Breakdown (gross vs. net)
+
+Headcount Trends (active vs. inactive)
+
+Leave Approvals vs. Denials
+
+Role Distribution
+
+Drill‑down Reports: exportable CSV/Excel.
+
+9. Logout & Session End
+Click “Logout” to clear JWT and return to login page.
+
+Idle timeout automatically logs out after configurable inactivity period.

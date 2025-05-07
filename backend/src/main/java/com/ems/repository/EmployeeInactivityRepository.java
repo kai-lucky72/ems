@@ -12,49 +12,98 @@ import org.springframework.stereotype.Repository;
 import com.ems.model.Employee;
 import com.ems.model.EmployeeInactivity;
 import com.ems.model.User;
+import com.ems.model.EmployeeInactivity.InactivityType;
 
 @Repository
 public interface EmployeeInactivityRepository extends JpaRepository<EmployeeInactivity, Long> {
+    // Basic queries
     List<EmployeeInactivity> findByEmployee(Employee employee);
+    List<EmployeeInactivity> findByEmployeeOrderByStartDateDesc(Employee employee);
     
     @Query("SELECT ei FROM EmployeeInactivity ei WHERE ei.employee.user = :user ORDER BY ei.startDate DESC")
-    List<EmployeeInactivity> findByUser(@Param("user") User user);
+    List<EmployeeInactivity> findByUserOrderByStartDateDesc(@Param("user") User user);
     
     @Query("SELECT ei FROM EmployeeInactivity ei WHERE ei.employee.id = :employeeId ORDER BY ei.startDate DESC")
     List<EmployeeInactivity> findByEmployeeId(@Param("employeeId") Long employeeId);
     
+    // Find current inactivity record (no endDate or endDate in the future)
     @Query("SELECT ei FROM EmployeeInactivity ei WHERE ei.employee.id = :employeeId AND " +
-           "ei.endDate IS NULL")
+           "(ei.endDate IS NULL OR ei.endDate >= CURRENT_DATE) " +
+           "AND ei.startDate <= CURRENT_DATE " +
+           "ORDER BY ei.startDate DESC")
     Optional<EmployeeInactivity> findCurrentInactivityByEmployeeId(@Param("employeeId") Long employeeId);
     
-    @Query("SELECT ei FROM EmployeeInactivity ei WHERE ei.employee.user = :user AND " +
-           "((ei.startDate <= :startDate AND (ei.endDate IS NULL OR ei.endDate >= :startDate)) OR " +
-           "(ei.startDate <= :endDate AND (ei.endDate IS NULL OR ei.endDate >= :endDate)) OR " +
-           "(ei.startDate >= :startDate AND (ei.endDate IS NULL OR ei.endDate <= :endDate)))")
-    List<EmployeeInactivity> findActiveInactivitiesInDateRange(
-            @Param("user") User user, 
-            @Param("startDate") LocalDate startDate, 
-            @Param("endDate") LocalDate endDate);
+    // Find inactivities by type
+    @Query("SELECT ei FROM EmployeeInactivity ei WHERE ei.type = :type AND ei.employee.user = :user " +
+           "ORDER BY ei.startDate DESC")
+    List<EmployeeInactivity> findByTypeAndUser(@Param("type") InactivityType type, @Param("user") User user);
     
+    // Count inactivities by type
+    @Query("SELECT COUNT(ei) FROM EmployeeInactivity ei WHERE ei.type = :type AND ei.employee.user = :user")
+    long countByTypeAndUser(@Param("type") InactivityType type, @Param("user") User user);
+    
+    // Find inactivities by date range (that overlap with the given range)
+    @Query("SELECT ei FROM EmployeeInactivity ei WHERE ei.employee.user = :user AND " +
+           "((ei.startDate <= :endDate) AND (ei.endDate IS NULL OR ei.endDate >= :startDate))")
+    List<EmployeeInactivity> findByDateRange(
+            @Param("startDate") LocalDate startDate, 
+            @Param("endDate") LocalDate endDate,
+            @Param("user") User user);
+    
+    // Find inactivities that are active on a specific date
+    @Query("SELECT ei FROM EmployeeInactivity ei WHERE ei.employee.user = :user " +
+           "AND :date BETWEEN ei.startDate AND COALESCE(ei.endDate, :date)")
+    List<EmployeeInactivity> findInactivitiesByDate(@Param("user") User user, @Param("date") LocalDate date);
+    
+    // Count current inactivities
     @Query("SELECT COUNT(ei) FROM EmployeeInactivity ei WHERE ei.employee.user = :user AND " +
-           "(ei.endDate IS NULL OR ei.endDate >= CURRENT_DATE)")
+           "(ei.endDate IS NULL OR ei.endDate >= CURRENT_DATE) AND ei.startDate <= CURRENT_DATE")
     long countCurrentInactivities(@Param("user") User user);
     
+    // Find current inactivities
     @Query("SELECT ei FROM EmployeeInactivity ei WHERE ei.employee.user = :user AND " +
-           "(ei.endDate IS NULL OR ei.endDate >= CURRENT_DATE)")
+           "(ei.endDate IS NULL OR ei.endDate >= CURRENT_DATE) AND ei.startDate <= CURRENT_DATE " +
+           "ORDER BY ei.startDate DESC")
     List<EmployeeInactivity> findCurrentInactivities(@Param("user") User user);
     
+    // Calculate average duration of completed inactivities (in days)
+    @Query("SELECT AVG(FUNCTION('DATEDIFF', ei.endDate, ei.startDate) + 1) FROM EmployeeInactivity ei " +
+           "WHERE ei.employee.user = :user AND ei.endDate IS NOT NULL")
+    Double calculateAverageDuration(@Param("user") User user);
+    
+    // Count inactivities by month
     @Query("SELECT FUNCTION('YEAR', ei.startDate) AS year, FUNCTION('MONTH', ei.startDate) AS month, " +
            "COUNT(ei) AS count FROM EmployeeInactivity ei WHERE ei.employee.user = :user " +
            "GROUP BY FUNCTION('YEAR', ei.startDate), FUNCTION('MONTH', ei.startDate) " +
            "ORDER BY FUNCTION('YEAR', ei.startDate) DESC, FUNCTION('MONTH', ei.startDate) DESC")
     List<Object[]> countInactivitiesByMonth(@Param("user") User user);
     
+    // Count inactivities by department
+    @Query("SELECT d.name AS department, COUNT(ei) AS count FROM EmployeeInactivity ei " +
+           "JOIN ei.employee e JOIN e.department d " +
+           "WHERE e.user = :user " +
+           "GROUP BY d.name ORDER BY COUNT(ei) DESC")
+    List<Object[]> countInactivitiesByDepartment(@Param("user") User user);
+    
+    // Count currently inactive employees
     @Query("SELECT COUNT(DISTINCT ei.employee) FROM EmployeeInactivity ei WHERE ei.employee.user = :user " +
            "AND ei.startDate <= CURRENT_DATE AND (ei.endDate IS NULL OR ei.endDate >= CURRENT_DATE)")
     long countCurrentlyInactiveEmployees(@Param("user") User user);
     
+    // Find employees that have been inactive for more than X days
     @Query("SELECT ei FROM EmployeeInactivity ei WHERE ei.employee.user = :user " +
-           "AND :date BETWEEN ei.startDate AND COALESCE(ei.endDate, :date)")
-    List<EmployeeInactivity> findInactivitiesByDate(@Param("user") User user, @Param("date") LocalDate date);
+           "AND (ei.endDate IS NULL OR ei.endDate >= CURRENT_DATE) " +
+           "AND FUNCTION('DATEDIFF', CURRENT_DATE, ei.startDate) > :days")
+    List<EmployeeInactivity> findEmployeesInactiveForMoreThanXDays(
+            @Param("user") User user, 
+            @Param("days") int days);
+    
+    // Find employees that will return from inactivity within the next X days
+    @Query("SELECT ei FROM EmployeeInactivity ei WHERE ei.employee.user = :user " +
+           "AND ei.endDate IS NOT NULL " +
+           "AND ei.endDate > CURRENT_DATE " +
+           "AND FUNCTION('DATEDIFF', ei.endDate, CURRENT_DATE) <= :days")
+    List<EmployeeInactivity> findEmployeesReturningWithinXDays(
+            @Param("user") User user, 
+            @Param("days") int days);
 }
