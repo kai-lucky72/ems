@@ -71,12 +71,26 @@ public class AuthService implements UserDetailsService {
         return booleanList != null && !booleanList.isEmpty() && booleanList.get(0);
     }
     
+    /**
+     * Utility method to get the first user from a list or throw exception if not found
+     * @param users The list of users
+     * @param errorMessage The error message if user not found
+     * @return The first user in the list
+     * @throws UsernameNotFoundException if list is empty
+     */
+    private User getUserFromList(List<User> users, String errorMessage) {
+        if (users == null || users.isEmpty()) {
+            throw new UsernameNotFoundException(errorMessage);
+        }
+        return users.get(0);
+    }
+    
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         // First check if it's a manager (User)
         if (getBooleanResult(userRepository.existsByEmail(email))) {
-            User user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+            User user = getUserFromList(userRepository.findByEmail(email), 
+                    "User not found with email: " + email);
             
             List<GrantedAuthority> authorities = new ArrayList<>();
             authorities.add(new SimpleGrantedAuthority(ROLE_MANAGER));
@@ -95,8 +109,8 @@ public class AuthService implements UserDetailsService {
         } 
         // Then check if it's an employee
         else if (getBooleanResult(employeeRepository.existsByEmail(email))) {
-            Employee employee = employeeRepository.findByEmail(email)
-                    .orElseThrow(() -> new UsernameNotFoundException("Employee not found with email: " + email));
+            Employee employee = getEmployeeFromList(employeeRepository.findByEmail(email), 
+                    "Employee not found with email: " + email);
             
             // Check if employee account is activated
             if (!employee.isAccountActivated()) {
@@ -164,8 +178,8 @@ public class AuthService implements UserDetailsService {
                     new UsernamePasswordAuthenticationToken("M_" + email, password, Collections.emptyList())
                 );
                 
-                User user = userRepository.findByEmail(email)
-                        .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+                User user = getUserFromList(userRepository.findByEmail(email), 
+                        "User not found");
                 
                 // Update last login time
                 user.updateLastLogin();
@@ -180,8 +194,8 @@ public class AuthService implements UserDetailsService {
                     new UsernamePasswordAuthenticationToken("E_" + email, password, Collections.emptyList())
                 );
                 
-                Employee employee = employeeRepository.findByEmail(email)
-                        .orElseThrow(() -> new UsernameNotFoundException("Employee not found"));
+                Employee employee = getEmployeeFromList(employeeRepository.findByEmail(email),
+                        "Employee not found");
                 
                 // Update last login time
                 employee.updateLastLogin();
@@ -205,14 +219,28 @@ public class AuthService implements UserDetailsService {
     
     @Transactional(readOnly = true)
     public User getUserByEmail(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+        return getUserFromList(userRepository.findByEmail(email),
+                "User not found with email: " + email);
+    }
+    
+    /**
+     * Utility method to get the first employee from a list or throw exception if not found
+     * @param employees The list of employees
+     * @param errorMessage The error message if employee not found
+     * @return The first employee in the list
+     * @throws UsernameNotFoundException if list is empty
+     */
+    private Employee getEmployeeFromList(List<Employee> employees, String errorMessage) {
+        if (employees == null || employees.isEmpty()) {
+            throw new UsernameNotFoundException(errorMessage);
+        }
+        return employees.get(0);
     }
     
     @Transactional(readOnly = true)
     public Employee getEmployeeByEmail(String email) {
-        return employeeRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("Employee not found with email: " + email));
+        return getEmployeeFromList(employeeRepository.findByEmail(email),
+                "Employee not found with email: " + email);
     }
 
     @Transactional(readOnly = true)
@@ -298,8 +326,8 @@ public class AuthService implements UserDetailsService {
     
     @Transactional
     public void activateEmployeeAccount(String token, String password) {
-        Employee employee = employeeRepository.findByActivationToken(token)
-                .orElseThrow(() -> new BadRequestException("Invalid activation token"));
+        Employee employee = getEmployeeFromList(employeeRepository.findByActivationToken(token),
+                "Invalid activation token");
         
         // Check if token is expired
         if (employee.getActivationTokenExpiry().isBefore(LocalDateTime.now())) {
@@ -360,8 +388,8 @@ public class AuthService implements UserDetailsService {
     public void resetPassword(String token, String password) {
         // Check if it's a manager token
         if (getBooleanResult(userRepository.existsByResetToken(token))) {
-            User user = userRepository.findByResetToken(token)
-                    .orElseThrow(() -> new BadRequestException("Invalid reset token"));
+            User user = getUserFromList(userRepository.findByResetToken(token),
+                    "Invalid reset token");
             
             // Check if token is expired
             if (user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
@@ -376,8 +404,8 @@ public class AuthService implements UserDetailsService {
         } 
         // Check if it's an employee token
         else if (getBooleanResult(employeeRepository.existsByResetToken(token))) {
-            Employee employee = employeeRepository.findByResetToken(token)
-                    .orElseThrow(() -> new BadRequestException("Invalid reset token"));
+            Employee employee = getEmployeeFromList(employeeRepository.findByResetToken(token),
+                    "Invalid reset token");
             
             // Check if token is expired
             if (employee.getResetTokenExpiry().isBefore(LocalDateTime.now())) {

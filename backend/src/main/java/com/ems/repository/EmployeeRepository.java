@@ -31,13 +31,13 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     Optional<Employee> findByEmailAndUser(String email, User user);
     
     @Query("SELECT e FROM Employee e WHERE e.email = :email")
-    Optional<Employee> findByEmail(@Param("email") String email);
+    List<Employee> findByEmail(@Param("email") String email);
     
     List<Boolean> existsByEmail(String email);
     
-    Optional<Employee> findByActivationToken(String activationToken);
+    List<Employee> findByActivationToken(String activationToken);
     
-    Optional<Employee> findByResetToken(String resetToken);
+    List<Employee> findByResetToken(String resetToken);
     
     List<Boolean> existsByResetToken(String resetToken);
     

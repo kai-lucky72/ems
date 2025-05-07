@@ -12,11 +12,11 @@ import com.ems.model.User;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
-    Optional<User> findByEmail(String email);
+    List<User> findByEmail(String email);
     
     List<Boolean> existsByEmail(String email);
     
-    Optional<User> findByResetToken(String resetToken);
+    List<User> findByResetToken(String resetToken);
     
     List<Boolean> existsByResetToken(String resetToken);
     

@@ -66,7 +66,7 @@ public interface DepartmentRepository extends JpaRepository<Department, Long> {
     List<Department> findByUserAndBudgetType(@Param("user") User user, @Param("budgetType") BudgetType budgetType);
     
     @Query("SELECT SUM(d.budget) FROM Department d WHERE d.user = :user")
-    Optional<Double> sumBudgetByUser(@Param("user") User user);
+    List<Double> sumBudgetByUser(@Param("user") User user);
     
     @Query("SELECT d.budgetType, SUM(d.budget) FROM Department d WHERE d.user = :user GROUP BY d.budgetType")
     List<Object[]> sumBudgetByTypeAndUser(@Param("user") User user);

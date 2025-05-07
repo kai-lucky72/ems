@@ -212,8 +212,8 @@ public class DepartmentService {
         // Basic stats
         List<Long> departmentCountList = departmentRepository.countByUser(currentUser);
         long totalDepartments = departmentCountList.isEmpty() ? 0L : departmentCountList.get(0);
-        Optional<Double> totalBudgetOpt = departmentRepository.sumBudgetByUser(currentUser);
-        Double totalBudget = totalBudgetOpt.orElse(0.0);
+        List<Double> totalBudgetList = departmentRepository.sumBudgetByUser(currentUser);
+        Double totalBudget = totalBudgetList.isEmpty() ? 0.0 : totalBudgetList.get(0);
         
         statistics.put("totalDepartments", totalDepartments);
         statistics.put("totalBudget", totalBudget);
