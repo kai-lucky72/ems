@@ -7,46 +7,46 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ems.dto.AnalyticsDto;
-import com.ems.service.AnalyticsService;
+import com.ems.dto.DepartmentBudgetAnalytics;
+import com.ems.dto.SalaryAnalytics;
+import com.ems.service.AnalyticsServiceImpl;
 
+/**
+ * Controller for analytics-related endpoints
+ */
 @RestController
 @RequestMapping("/api/analytics")
 public class AnalyticsController {
 
     @Autowired
-    private AnalyticsService analyticsService;
+    private AnalyticsServiceImpl analyticsService;
 
+    /**
+     * Get comprehensive analytics for dashboard
+     */
     @GetMapping
     public ResponseEntity<AnalyticsDto> getAnalytics() {
         AnalyticsDto analytics = analyticsService.getAnalyticsForCurrentUser();
         return ResponseEntity.ok(analytics);
     }
 
+    /**
+     * Get department budget analytics
+     */
     @GetMapping("/departments")
-    public ResponseEntity<AnalyticsDto.DepartmentBudgetAnalytics> getDepartmentAnalytics() {
-        AnalyticsDto.DepartmentBudgetAnalytics departmentAnalytics = 
-                analyticsService.getDepartmentAnalyticsForCurrentUser();
+    public ResponseEntity<DepartmentBudgetAnalytics> getDepartmentAnalytics() {
+        DepartmentBudgetAnalytics departmentAnalytics = 
+                analyticsService.getDepartmentBudgetAnalyticsForCurrentUser();
         return ResponseEntity.ok(departmentAnalytics);
     }
 
+    /**
+     * Get salary analytics
+     */
     @GetMapping("/salaries")
-    public ResponseEntity<AnalyticsDto.SalaryAnalytics> getSalaryAnalytics() {
-        AnalyticsDto.SalaryAnalytics salaryAnalytics = 
+    public ResponseEntity<SalaryAnalytics> getSalaryAnalytics() {
+        SalaryAnalytics salaryAnalytics = 
                 analyticsService.getSalaryAnalyticsForCurrentUser();
         return ResponseEntity.ok(salaryAnalytics);
-    }
-
-    @GetMapping("/employees")
-    public ResponseEntity<AnalyticsDto.EmployeeAnalytics> getEmployeeAnalytics() {
-        AnalyticsDto.EmployeeAnalytics employeeAnalytics = 
-                analyticsService.getEmployeeAnalyticsForCurrentUser();
-        return ResponseEntity.ok(employeeAnalytics);
-    }
-
-    @GetMapping("/leaves")
-    public ResponseEntity<AnalyticsDto.LeaveAnalytics> getLeaveAnalytics() {
-        AnalyticsDto.LeaveAnalytics leaveAnalytics = 
-                analyticsService.getLeaveAnalyticsForCurrentUser();
-        return ResponseEntity.ok(leaveAnalytics);
     }
 }

@@ -330,4 +330,69 @@ public class EmployeeDto {
         }
         this.inactivityHistory.add(inactivity);
     }
+    
+    // Additional fields needed for employee analytics
+    private int daysUntilContractEnd;
+    private int yearsOfService;
+    private int daysUntilAnniversary;
+    private LocalDate upcomingAnniversaryDate;
+    private int daysUntilReturn;
+    private int daysRemainingOnLeave;
+    private int tenureDays;
+    
+    public int getDaysUntilContractEnd() {
+        return daysUntilContractEnd;
+    }
+    
+    public void setDaysUntilContractEnd(int daysUntilContractEnd) {
+        this.daysUntilContractEnd = daysUntilContractEnd;
+    }
+    
+    public int getYearsOfService() {
+        return yearsOfService;
+    }
+    
+    public void setYearsOfService(int yearsOfService) {
+        this.yearsOfService = yearsOfService;
+    }
+    
+    public int getDaysUntilAnniversary() {
+        return daysUntilAnniversary;
+    }
+    
+    public void setDaysUntilAnniversary(int daysUntilAnniversary) {
+        this.daysUntilAnniversary = daysUntilAnniversary;
+    }
+    
+    public LocalDate getUpcomingAnniversaryDate() {
+        return upcomingAnniversaryDate;
+    }
+    
+    public void setUpcomingAnniversaryDate(LocalDate upcomingAnniversaryDate) {
+        this.upcomingAnniversaryDate = upcomingAnniversaryDate;
+    }
+    
+    public int getDaysUntilReturn() {
+        return daysUntilReturn;
+    }
+    
+    public void setDaysUntilReturn(int daysUntilReturn) {
+        this.daysUntilReturn = daysUntilReturn;
+    }
+    
+    public int getDaysRemainingOnLeave() {
+        return daysRemainingOnLeave;
+    }
+    
+    public void setDaysRemainingOnLeave(int daysRemainingOnLeave) {
+        this.daysRemainingOnLeave = daysRemainingOnLeave;
+    }
+    
+    public int getTenureDays() {
+        return tenureDays;
+    }
+    
+    public void setTenureDays(int tenureDays) {
+        this.tenureDays = tenureDays;
+    }
 }

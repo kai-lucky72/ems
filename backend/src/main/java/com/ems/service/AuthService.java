@@ -11,7 +11,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,9 +24,11 @@ import org.springframework.transaction.annotation.Transactional;
 import com.ems.dto.LoginRequestDto;
 import com.ems.dto.TokenResponseDto;
 import com.ems.dto.UserDto;
-import com.ems.exception.AuthenticationException;
 import com.ems.exception.BadRequestException;
 import com.ems.exception.ResourceNotFoundException;
+
+// Use custom authentication exception to avoid ambiguity with Spring Security's version
+import com.ems.exception.AuthenticationException;
 import com.ems.model.Employee;
 import com.ems.model.User;
 import com.ems.repository.EmployeeRepository;
@@ -188,7 +189,7 @@ public class AuthService implements UserDetailsService {
             
             return new TokenResponseDto(token, role);
             
-        } catch (AuthenticationException e) {
+        } catch (org.springframework.security.core.AuthenticationException e) {
             throw new com.ems.exception.AuthenticationException("Invalid email/password");
         }
     }

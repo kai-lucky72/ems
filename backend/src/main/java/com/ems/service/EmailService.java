@@ -35,40 +35,55 @@ public class EmailService {
     @Value("${spring.mail.port:587}")
     private int smtpPort;
     
+    @Value("${spring.mail.username:your-email@gmail.com}")
+    private String mailUsername;
+    
+    @Value("${spring.mail.password:your-app-password}")
+    private String mailPassword;
+    
     /**
-     * Send an email message to an employee
+     * Send an email message to an employee using a MessageDto
      */
     public boolean sendEmail(MessageDto messageDto, String recipientEmail) {
         try {
-            User currentUser = authService.getCurrentUser();
-            
-            // Get email credentials from user settings
-            String smtpUsername = currentUser.getEmailUsername();
-            String smtpPassword = currentUser.getEmailPassword();
-            
-            if (smtpUsername == null || smtpPassword == null) {
-                logger.error("Email credentials not configured for user: {}", currentUser.getEmail());
-                throw new EmailException("Email credentials not configured. Please set up your email settings.");
-            }
-            
-            // Configure mail sender
-            JavaMailSenderImpl mailSender = createMailSender(smtpUsername, smtpPassword);
+            // Configure mail sender with system settings
+            JavaMailSenderImpl mailSender = createSystemMailSender();
             
             // Send the email
             MimeMessage mimeMessage = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
             
-            helper.setFrom(smtpUsername);
+            // Set message properties
+            helper.setFrom("noreply@ems.com");
             helper.setTo(recipientEmail);
             helper.setSubject(messageDto.getSubject());
+            helper.setText(messageDto.getContent(), true);
             
-            String emailContent = messageDto.getEmailBody();
-            if (emailContent == null || emailContent.isEmpty()) {
-                // Use message content if no specific email body provided
-                emailContent = messageDto.getContent();
-            }
+            mailSender.send(mimeMessage);
+            logger.info("Email sent successfully to: {}", recipientEmail);
+            return true;
+        } catch (Exception e) {
+            logger.error("Failed to send email: {}", e.getMessage());
+            throw new EmailException("Failed to send email: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Send a simple email with subject and content
+     */
+    public boolean sendEmail(String recipientEmail, String subject, String content) {
+        try {
+            // Configure mail sender with system settings
+            JavaMailSenderImpl mailSender = createSystemMailSender();
             
-            helper.setText(emailContent, true); // true = HTML content
+            // Send the email
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+            
+            helper.setFrom("noreply@ems.com");
+            helper.setTo(recipientEmail);
+            helper.setSubject(subject);
+            helper.setText(content, true); // true = HTML content
             
             mailSender.send(mimeMessage);
             logger.info("Email sent successfully to: {}", recipientEmail);
@@ -81,7 +96,25 @@ public class EmailService {
     }
     
     /**
-     * Create and configure JavaMailSender
+     * Create system mail sender using application properties
+     */
+    private JavaMailSenderImpl createSystemMailSender() {
+        JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
+        mailSender.setHost(smtpHost);
+        mailSender.setPort(smtpPort);
+        mailSender.setUsername(mailUsername);
+        mailSender.setPassword(mailPassword);
+        
+        Properties props = mailSender.getJavaMailProperties();
+        props.put("mail.transport.protocol", "smtp");
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true");
+        
+        return mailSender;
+    }
+    
+    /**
+     * Create and configure JavaMailSender with custom credentials
      */
     private JavaMailSenderImpl createMailSender(String username, String password) {
         JavaMailSenderImpl mailSender = new JavaMailSenderImpl();

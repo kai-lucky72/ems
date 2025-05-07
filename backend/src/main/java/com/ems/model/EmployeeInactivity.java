@@ -193,6 +193,11 @@ public class EmployeeInactivity {
         return !date.isBefore(startDate) && (endDate == null || !date.isAfter(endDate));
     }
     
+    // Alias method with a different name, for code clarity in some contexts
+    public boolean isActiveOn(LocalDate date) {
+        return isActiveOnDate(date);
+    }
+    
     // Check if inactivity overlaps with given date range
     public boolean overlapsWithDateRange(LocalDate rangeStart, LocalDate rangeEnd) {
         if (endDate == null) {

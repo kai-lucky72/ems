@@ -92,6 +92,13 @@ public class Employee {
     
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL)
     private List<EmployeeInactivity> inactivityPeriods = new ArrayList<>();
+    
+    // Transient fields for current inactivity period
+    @Transient
+    private LocalDate inactiveFrom;
+    
+    @Transient
+    private LocalDate inactiveTo;
 
     public enum ContractType {
         FULL_TIME, PART_TIME, REMOTE;
@@ -360,13 +367,27 @@ public class Employee {
     
     // Get inactivity from/to for DTO
     public LocalDate getInactiveFrom() {
+        if (inactiveFrom != null) {
+            return inactiveFrom;
+        }
         EmployeeInactivity inactivity = getCurrentInactivityPeriod();
         return inactivity != null ? inactivity.getStartDate() : null;
     }
     
     public LocalDate getInactiveTo() {
+        if (inactiveTo != null) {
+            return inactiveTo;
+        }
         EmployeeInactivity inactivity = getCurrentInactivityPeriod();
         return inactivity != null ? inactivity.getEndDate() : null;
+    }
+    
+    public void setInactiveFrom(LocalDate inactiveFrom) {
+        this.inactiveFrom = inactiveFrom;
+    }
+    
+    public void setInactiveTo(LocalDate inactiveTo) {
+        this.inactiveTo = inactiveTo;
     }
     
     // Authentication-related getters and setters
