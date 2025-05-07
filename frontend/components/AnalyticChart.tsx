@@ -22,35 +22,42 @@ const AnalyticChart: React.FC<AnalyticChartProps> = ({ type, data }) => {
   const chartInstance = useRef<Chart | null>(null);
 
   useEffect(() => {
-    if (chartRef.current) {
-      // Destroy previous chart if it exists
-      if (chartInstance.current) {
-        chartInstance.current.destroy();
-      }
+    if (!chartRef.current) return;
 
-      // Create new chart
-      const ctx = chartRef.current.getContext('2d');
-      if (ctx) {
-        chartInstance.current = new Chart(ctx, {
-          type,
-          data,
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                position: 'top',
-              },
-              title: {
-                display: false,
-              },
-            },
-          },
-        });
-      }
+    // Destroy any existing chart
+    if (chartInstance.current) {
+      chartInstance.current.destroy();
     }
 
-    // Cleanup on unmount
+    // Create the chart
+    const ctx = chartRef.current.getContext('2d');
+    if (!ctx) return;
+
+    chartInstance.current = new Chart(ctx, {
+      type,
+      data,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+          },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+            padding: 10,
+            titleFont: {
+              size: 14,
+            },
+            bodyFont: {
+              size: 13,
+            },
+          },
+        },
+      },
+    });
+
+    // Cleanup function
     return () => {
       if (chartInstance.current) {
         chartInstance.current.destroy();
@@ -58,7 +65,11 @@ const AnalyticChart: React.FC<AnalyticChartProps> = ({ type, data }) => {
     };
   }, [type, data]);
 
-  return <canvas ref={chartRef} />;
+  return (
+    <div className="w-full h-full min-h-[300px]">
+      <canvas ref={chartRef}></canvas>
+    </div>
+  );
 };
 
 export default AnalyticChart;

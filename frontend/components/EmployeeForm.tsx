@@ -1,10 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Employee, EmployeeFormData } from '@/types';
-
-interface Department {
-  id: number;
-  name: string;
-}
+import { Employee, Department, EmployeeFormData } from '@/types';
 
 interface EmployeeFormProps {
   employee: Employee | null;
@@ -17,18 +12,18 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
   employee,
   departments,
   onSubmit,
-  onCancel,
+  onCancel
 }) => {
   const [formData, setFormData] = useState<EmployeeFormData>({
     name: '',
     email: '',
     phone: '',
     role: '',
-    departmentId: 0,
+    departmentId: departments.length > 0 ? departments[0].id : 0,
     contractType: 'FULL_TIME',
-    startDate: '',
+    startDate: new Date().toISOString().split('T')[0],
     endDate: null,
-    isActive: true,
+    isActive: true
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -43,26 +38,27 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
         role: employee.role,
         departmentId: employee.departmentId,
         contractType: employee.contractType,
-        startDate: employee.startDate.split('T')[0], // Format date for input
+        startDate: employee.startDate.split('T')[0],
         endDate: employee.endDate ? employee.endDate.split('T')[0] : null,
-        isActive: employee.isActive,
+        isActive: employee.isActive
       });
-    } else if (departments.length > 0) {
-      // Set default department if creating new employee
-      setFormData(prev => ({
-        ...prev,
-        departmentId: departments[0].id,
-      }));
     }
-  }, [employee, departments]);
+  }, [employee]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     const { name, value, type } = e.target;
-    const checked = (e.target as HTMLInputElement).checked;
-
+    
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: type === 'checkbox' 
+        ? (e.target as HTMLInputElement).checked 
+        : name === 'departmentId' 
+          ? Number(value)
+          : name === 'endDate' && value === ''
+            ? null
+            : value
     }));
   };
 
@@ -72,21 +68,9 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
     setError('');
 
     try {
-      const submissionData: EmployeeFormData = {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        role: formData.role,
-        departmentId: Number(formData.departmentId),
-        contractType: formData.contractType as 'FULL_TIME' | 'PART_TIME' | 'REMOTE',
-        startDate: formData.startDate,
-        endDate: formData.endDate || null,
-        isActive: formData.isActive
-      };
-
-      await onSubmit(submissionData);
+      await onSubmit(formData);
     } catch (err: any) {
-      setError(err.message || 'Failed to save employee data');
+      setError(err.message || 'Failed to save employee. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -101,136 +85,160 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label htmlFor="name" className="label">
-            Full Name
-          </label>
-          <input
-            id="name"
-            name="name"
-            type="text"
-            required
-            value={formData.name}
-            onChange={handleChange}
-            className="input"
-          />
+        {/* Personal Information */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium text-gray-800">Personal Information</h3>
+          
+          <div>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+              Full Name
+            </label>
+            <div className="mt-1">
+              <input
+                type="text"
+                name="name"
+                id="name"
+                required
+                value={formData.name}
+                onChange={handleChange}
+                className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              Email Address
+            </label>
+            <div className="mt-1">
+              <input
+                type="email"
+                name="email"
+                id="email"
+                required
+                value={formData.email}
+                onChange={handleChange}
+                className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+              Phone Number
+            </label>
+            <div className="mt-1">
+              <input
+                type="tel"
+                name="phone"
+                id="phone"
+                required
+                value={formData.phone}
+                onChange={handleChange}
+                className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <label htmlFor="role" className="block text-sm font-medium text-gray-700">
+              Job Title
+            </label>
+            <div className="mt-1">
+              <input
+                type="text"
+                name="role"
+                id="role"
+                required
+                value={formData.role}
+                onChange={handleChange}
+                className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
+              />
+            </div>
+          </div>
         </div>
 
-        <div>
-          <label htmlFor="email" className="label">
-            Email
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            required
-            value={formData.email}
-            onChange={handleChange}
-            className="input"
-          />
-        </div>
+        {/* Employment Details */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium text-gray-800">Employment Details</h3>
+          
+          <div>
+            <label htmlFor="departmentId" className="block text-sm font-medium text-gray-700">
+              Department
+            </label>
+            <div className="mt-1">
+              <select
+                name="departmentId"
+                id="departmentId"
+                required
+                value={formData.departmentId}
+                onChange={handleChange}
+                className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
+              >
+                {departments.map((dept) => (
+                  <option key={dept.id} value={dept.id}>
+                    {dept.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
 
-        <div>
-          <label htmlFor="phone" className="label">
-            Phone
-          </label>
-          <input
-            id="phone"
-            name="phone"
-            type="tel"
-            required
-            value={formData.phone}
-            onChange={handleChange}
-            className="input"
-          />
-        </div>
+          <div>
+            <label htmlFor="contractType" className="block text-sm font-medium text-gray-700">
+              Contract Type
+            </label>
+            <div className="mt-1">
+              <select
+                name="contractType"
+                id="contractType"
+                required
+                value={formData.contractType}
+                onChange={handleChange}
+                className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
+              >
+                <option value="FULL_TIME">Full Time</option>
+                <option value="PART_TIME">Part Time</option>
+                <option value="REMOTE">Remote</option>
+              </select>
+            </div>
+          </div>
 
-        <div>
-          <label htmlFor="role" className="label">
-            Job Role
-          </label>
-          <input
-            id="role"
-            name="role"
-            type="text"
-            required
-            value={formData.role}
-            onChange={handleChange}
-            className="input"
-          />
-        </div>
+          <div>
+            <label htmlFor="startDate" className="block text-sm font-medium text-gray-700">
+              Start Date
+            </label>
+            <div className="mt-1">
+              <input
+                type="date"
+                name="startDate"
+                id="startDate"
+                required
+                value={formData.startDate}
+                onChange={handleChange}
+                className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
+              />
+            </div>
+          </div>
 
-        <div>
-          <label htmlFor="departmentId" className="label">
-            Department
-          </label>
-          <select
-            id="departmentId"
-            name="departmentId"
-            required
-            value={formData.departmentId}
-            onChange={handleChange}
-            className="input"
-          >
-            <option value="">Select Department</option>
-            {departments.map((dept) => (
-              <option key={dept.id} value={dept.id}>
-                {dept.name}
-              </option>
-            ))}
-          </select>
-        </div>
+          <div>
+            <label htmlFor="endDate" className="block text-sm font-medium text-gray-700">
+              End Date (If applicable)
+            </label>
+            <div className="mt-1">
+              <input
+                type="date"
+                name="endDate"
+                id="endDate"
+                value={formData.endDate || ''}
+                onChange={handleChange}
+                min={formData.startDate}
+                className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
+              />
+            </div>
+          </div>
 
-        <div>
-          <label htmlFor="contractType" className="label">
-            Contract Type
-          </label>
-          <select
-            id="contractType"
-            name="contractType"
-            required
-            value={formData.contractType}
-            onChange={handleChange}
-            className="input"
-          >
-            <option value="FULL_TIME">Full Time</option>
-            <option value="PART_TIME">Part Time</option>
-            <option value="REMOTE">Remote</option>
-          </select>
-        </div>
-
-        <div>
-          <label htmlFor="startDate" className="label">
-            Start Date
-          </label>
-          <input
-            id="startDate"
-            name="startDate"
-            type="date"
-            required
-            value={formData.startDate}
-            onChange={handleChange}
-            className="input"
-          />
-        </div>
-
-        <div>
-          <label htmlFor="endDate" className="label">
-            End Date (if applicable)
-          </label>
-          <input
-            id="endDate"
-            name="endDate"
-            type="date"
-            value={formData.endDate || ''}
-            onChange={handleChange}
-            className="input"
-          />
-        </div>
-
-        <div className="md:col-span-2">
-          <div className="flex items-center">
+          <div className="flex items-center mt-4">
             <input
               id="isActive"
               name="isActive"
@@ -246,20 +254,20 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({
         </div>
       </div>
 
-      <div className="flex justify-end space-x-3">
+      <div className="flex justify-end space-x-3 pt-4">
         <button
           type="button"
           onClick={onCancel}
-          className="btn border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+          className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="btn btn-primary"
+          className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
         >
-          {loading ? 'Saving...' : 'Save Employee'}
+          {loading ? 'Saving...' : employee ? 'Update Employee' : 'Add Employee'}
         </button>
       </div>
     </form>
