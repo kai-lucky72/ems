@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { NextPage } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { register } from '@/lib/auth';
+import { register, checkUserAuthentication } from '@/lib/auth';
 
 const Register: NextPage = () => {
   const router = useRouter();
@@ -17,10 +17,54 @@ const Register: NextPage = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
+  
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkAuth = async () => {
+      const isAuthenticated = await checkUserAuthentication();
+      if (isAuthenticated) {
+        router.push('/dashboard');
+      }
+    };
+    
+    checkAuth();
+  }, [router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Validate password as user types
+    if (name === 'password') {
+      validatePassword(value);
+    }
+  };
+  
+  const validatePassword = (password: string) => {
+    const errors: string[] = [];
+    
+    if (password.length < 8) {
+      errors.push('Password must be at least 8 characters long');
+    }
+    
+    if (!/[A-Z]/.test(password)) {
+      errors.push('Password must contain at least one uppercase letter');
+    }
+    
+    if (!/[a-z]/.test(password)) {
+      errors.push('Password must contain at least one lowercase letter');
+    }
+    
+    if (!/[0-9]/.test(password)) {
+      errors.push('Password must contain at least one number');
+    }
+    
+    if (!/[!@#$%^&*]/.test(password)) {
+      errors.push('Password must contain at least one special character (!@#$%^&*)');
+    }
+    
+    setPasswordErrors(errors);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,8 +78,16 @@ const Register: NextPage = () => {
       setLoading(false);
       return;
     }
+    
+    // Check if password meets criteria
+    if (passwordErrors.length > 0) {
+      setError('Please fix the password issues before continuing');
+      setLoading(false);
+      return;
+    }
 
     try {
+      // Register as a manager
       await register({
         fullName: formData.fullName,
         email: formData.email,
@@ -43,8 +95,11 @@ const Register: NextPage = () => {
         companyName: formData.companyName,
         password: formData.password
       });
+      
+      // Redirect to login with success message
       router.push('/login?registered=true');
     } catch (err: any) {
+      console.error('Registration error:', err);
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
@@ -162,9 +217,18 @@ const Register: NextPage = () => {
                   required
                   value={formData.password}
                   onChange={handleChange}
-                  className="input"
+                  className={`input ${passwordErrors.length > 0 && formData.password ? 'border-orange-300' : ''}`}
                 />
               </div>
+              {formData.password && passwordErrors.length > 0 && (
+                <div className="mt-2 text-sm text-orange-600">
+                  <ul className="list-disc pl-5 space-y-1">
+                    {passwordErrors.map((error, index) => (
+                      <li key={index}>{error}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
 
             <div>

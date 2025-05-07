@@ -1,27 +1,74 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { NextPage } from 'next';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { login } from '@/lib/auth';
+import { login, isManager, isEmployee, checkUserAuthentication } from '@/lib/auth';
 
 const Login: NextPage = () => {
   const router = useRouter();
+  const { redirect, activated, reset } = router.query;
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkAuth = async () => {
+      const isAuthenticated = await checkUserAuthentication();
+      if (isAuthenticated) {
+        router.push('/dashboard');
+      }
+    };
+    
+    checkAuth();
+    
+    // Show success messages based on query params
+    if (activated === 'true') {
+      setSuccessMessage('Your account has been activated successfully! You can now log in.');
+    } else if (reset === 'true') {
+      setSuccessMessage('Your password has been reset successfully! You can now log in with your new password.');
+    }
+  }, [router, activated, reset]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccessMessage('');
 
     try {
-      await login(email, password);
-      router.push('/dashboard');
+      const { role } = await login(email, password);
+      
+      // Redirect based on role or specified redirect
+      if (redirect) {
+        router.push(decodeURIComponent(redirect as string));
+      } else {
+        // Send to appropriate dashboard based on role
+        if (isManager()) {
+          router.push('/dashboard');
+        } else if (isEmployee()) {
+          router.push('/dashboard/profile');
+        } else {
+          router.push('/dashboard');
+        }
+      }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to login. Please try again.');
+      console.error('Login error:', err);
+      
+      const errorMessage = err.response?.data?.message || 'Failed to login. Please try again.';
+      
+      // Check for specific error types
+      if (errorMessage.includes('not activated')) {
+        setError('Your account has not been activated. Please check your email for activation instructions.');
+      } else if (errorMessage.includes('invalid credentials')) {
+        setError('Invalid email or password. Please try again.');
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -47,6 +94,11 @@ const Login: NextPage = () => {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          {successMessage && (
+            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded mb-4" role="alert">
+              {successMessage}
+            </div>
+          )}
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4" role="alert">
               {error}
@@ -87,6 +139,11 @@ const Login: NextPage = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   className="input"
                 />
+              </div>
+              <div className="text-sm mt-1 text-right">
+                <Link href="/reset-password" className="font-medium text-primary hover:text-primary-dark">
+                  Forgot your password?
+                </Link>
               </div>
             </div>
 
