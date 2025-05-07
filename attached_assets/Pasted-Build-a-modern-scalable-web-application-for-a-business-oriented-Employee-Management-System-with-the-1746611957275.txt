@@ -1,0 +1,42 @@
+Build a modern, scalable web application for a business-oriented Employee Management System with the following core features:
+1. User Registration & AuthenticationUsers register with: full name, phone number, email, company name, and password.
+Secure login using email and password.
+Each registered user manages their own isolated instance of the system.
+Use JWT for stateless authentication and secure session management.
+2. Department ManagementManagers can create, update, and delete departments.
+Assign each department a monthly or yearly salary budget.
+Visual indicators when department expenses exceed budget.
+3. Employee ManagementAdd employees with: name, email, phone, role/title (e.g., Finance Head, Sales Staff), department, contract type (Full-time, Part-time, Remote), and contract duration (start–end date).
+Assign each employee to a department.
+Mark employees as active or inactive, and record inactive periods (with dates).
+4. Salary ManagementEnter gross salary for each employee.
+Add structured deductions:
+Tax (% or fixed)
+Insurance
+Custom deductions (label + amount)
+and others can be other by this clicking a button to add other until they are all there
+Auto-calculate net salary = gross salary – total deductions.
+Prevent total monthly salaries in a department from exceeding its allocated budget.
+5. Leave ManagementManagers can add leave requests for employees in real-time.
+Requests can be approved or denied, and status is stored.
+Track historical leave data per employee (date, reason, decision).
+If approved, employee is marked as on leave for specified period.
+6. Messaging SystemManagers can send emails directly to employees.
+Compose message by selecting employee name or email.
+Use the manager’s registered email account (via SMTP/SendGrid API) to authenticate and send messages.
+Log communication history per employee.
+7. Analytics & DashboardProvide an interactive dashboard with:
+Department-wise budget usage
+Salary analytics (total, average, gross vs. net)
+Active/inactive employee trends
+Leave status breakdown
+Role distribution (e.g., how many Finance Heads, Staff, etc.)
+Use libraries like Recharts, Chart.js, or D3.js.
+8. Technology RecommendationsFrontend: React + Tailwind CSS or Next.js (TypeScript preferred)
+Backend: Java (Spring Boot) with layered architecture (Controller → Service → Repository)
+Database: MySQL with clear entity relationships
+Email Integration: SMTP or SendGrid (REST API) for secure email delivery
+Security: JWT auth, role-based access control, rate limiting, and input validation
+Build the application to be clean, responsive, and scalable. The architecture should be modular and future-proof to support:
+Payroll export (PDF/Excel)
+Audit logs
