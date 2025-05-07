@@ -73,9 +73,9 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
            "JOIN e.department d WHERE e.user = :user GROUP BY d.name")
     List<Object[]> countEmployeesByDepartment(@Param("user") User user);
     
-    @Query("SELECT FUNCTION('YEAR', e.startDate) as year, FUNCTION('MONTH', e.startDate) as month, COUNT(e) as count " +
-          "FROM Employee e WHERE e.user = :user GROUP BY FUNCTION('YEAR', e.startDate), FUNCTION('MONTH', e.startDate) " +
-          "ORDER BY FUNCTION('YEAR', e.startDate) ASC, FUNCTION('MONTH', e.startDate) ASC")
+    @Query("SELECT EXTRACT(YEAR FROM e.startDate) as year, EXTRACT(MONTH FROM e.startDate) as month, COUNT(e) as count " +
+          "FROM Employee e WHERE e.user = :user GROUP BY EXTRACT(YEAR FROM e.startDate), EXTRACT(MONTH FROM e.startDate) " +
+          "ORDER BY EXTRACT(YEAR FROM e.startDate) ASC, EXTRACT(MONTH FROM e.startDate) ASC")
     List<Object[]> countEmployeesByStartDate(@Param("user") User user);
     
     // Find employees by contract type
@@ -121,8 +121,8 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     
     // Get employees with anniversaries coming up
     @Query("SELECT e FROM Employee e WHERE e.user = :user AND e.status = 'ACTIVE' " +
-           "AND FUNCTION('MONTH', e.startDate) = :month AND FUNCTION('DAY', e.startDate) BETWEEN :dayStart AND :dayEnd " +
-           "ORDER BY FUNCTION('DAY', e.startDate)")
+           "AND EXTRACT(MONTH FROM e.startDate) = :month AND EXTRACT(DAY FROM e.startDate) BETWEEN :dayStart AND :dayEnd " +
+           "ORDER BY EXTRACT(DAY FROM e.startDate)")
     List<Employee> findEmployeesWithUpcomingAnniversaries(
             @Param("user") User user, 
             @Param("month") int month, 

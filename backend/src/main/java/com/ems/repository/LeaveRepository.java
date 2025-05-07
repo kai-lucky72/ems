@@ -162,10 +162,10 @@ public interface LeaveRepository extends JpaRepository<Leave, Long> {
     /**
      * Get leave trends by month
      */
-    @Query("SELECT FUNCTION('YEAR', l.startDate) as year, FUNCTION('MONTH', l.startDate) as month, COUNT(l) as count " +
+    @Query("SELECT EXTRACT(YEAR FROM l.startDate) as year, EXTRACT(MONTH FROM l.startDate) as month, COUNT(l) as count " +
            "FROM Leave l WHERE l.employee.user = :user AND l.status = :status " +
-           "GROUP BY FUNCTION('YEAR', l.startDate), FUNCTION('MONTH', l.startDate) " +
-           "ORDER BY FUNCTION('YEAR', l.startDate) DESC, FUNCTION('MONTH', l.startDate) DESC")
+           "GROUP BY EXTRACT(YEAR FROM l.startDate), EXTRACT(MONTH FROM l.startDate) " +
+           "ORDER BY EXTRACT(YEAR FROM l.startDate) DESC, EXTRACT(MONTH FROM l.startDate) DESC")
     List<Object[]> getLeaveTrendsByMonth(@Param("user") User user, @Param("status") Status status);
     
     /**

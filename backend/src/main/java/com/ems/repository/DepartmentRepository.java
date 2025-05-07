@@ -1,5 +1,6 @@
 package com.ems.repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -102,7 +103,7 @@ public interface DepartmentRepository extends JpaRepository<Department, Long> {
     
     // Department growth
     @Query("SELECT d, COUNT(e) AS empCount FROM Department d JOIN d.employees e " +
-           "WHERE d.user = :user AND e.startDate >= FUNCTION('DATE_SUB', CURRENT_DATE, 30) " +
+           "WHERE d.user = :user AND e.startDate >= :thirtyDaysAgo " +
            "GROUP BY d.id ORDER BY empCount DESC")
-    List<Object[]> findFastestGrowingDepartments(@Param("user") User user);
+    List<Object[]> findFastestGrowingDepartments(@Param("user") User user, @Param("thirtyDaysAgo") LocalDate thirtyDaysAgo);
 }

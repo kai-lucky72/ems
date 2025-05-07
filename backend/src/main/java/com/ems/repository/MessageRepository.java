@@ -112,10 +112,10 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     /**
      * Get message statistics by month
      */
-    @Query("SELECT FUNCTION('YEAR', m.sentAt) as year, FUNCTION('MONTH', m.sentAt) as month, COUNT(m) as count " +
+    @Query("SELECT EXTRACT(YEAR FROM m.sentAt) as year, EXTRACT(MONTH FROM m.sentAt) as month, COUNT(m) as count " +
            "FROM Message m WHERE m.sender = :user " +
-           "GROUP BY FUNCTION('YEAR', m.sentAt), FUNCTION('MONTH', m.sentAt) " +
-           "ORDER BY FUNCTION('YEAR', m.sentAt) DESC, FUNCTION('MONTH', m.sentAt) DESC")
+           "GROUP BY EXTRACT(YEAR FROM m.sentAt), EXTRACT(MONTH FROM m.sentAt) " +
+           "ORDER BY EXTRACT(YEAR FROM m.sentAt) DESC, EXTRACT(MONTH FROM m.sentAt) DESC")
     List<Object[]> getMessageStatsByMonth(@Param("user") User user);
     
     /**

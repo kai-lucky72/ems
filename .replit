@@ -44,3 +44,15 @@ run = ["sh", "-c", "cd frontend && npm install && next dev -H 0.0.0.0 -p 5000"]
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 32821
+externalPort = 3002
+
+[[ports]]
+localPort = 33771
+externalPort = 3001
+
+[[ports]]
+localPort = 44615
+externalPort = 3000

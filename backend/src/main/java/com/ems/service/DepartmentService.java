@@ -409,7 +409,8 @@ public class DepartmentService {
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getFastestGrowingDepartments() {
         User currentUser = authService.getCurrentUser();
-        List<Object[]> growingDepts = departmentRepository.findFastestGrowingDepartments(currentUser);
+        LocalDate thirtyDaysAgo = LocalDate.now().minusDays(30);
+        List<Object[]> growingDepts = departmentRepository.findFastestGrowingDepartments(currentUser, thirtyDaysAgo);
         
         List<Map<String, Object>> result = new ArrayList<>();
         for (Object[] deptData : growingDepts) {
