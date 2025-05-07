@@ -61,7 +61,7 @@ public interface DeductionRepository extends JpaRepository<Deduction, Long> {
     
     @Query("SELECT AVG(CASE WHEN d.isPercentage = true THEN (d.value / 100) * d.salary.grossSalary ELSE d.value END) " +
            "FROM Deduction d WHERE d.type = :type AND d.salary.employee.user = :user")
-    Optional<Double> getAverageDeductionAmountByType(@Param("type") DeductionType type, @Param("user") User user);
+    List<Double> getAverageDeductionAmountByType(@Param("type") DeductionType type, @Param("user") User user);
     
     // Common deduction templates used by a company
     @Query("SELECT d.name, d.type, d.value, d.isPercentage, COUNT(d) AS frequency " +

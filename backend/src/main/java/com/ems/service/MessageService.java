@@ -216,13 +216,16 @@ public class MessageService {
         statistics.put("departmentStats", departmentData);
         
         // Read rate
-        Object[] readRateData = messageRepository.getMessagesReadRate(currentUser);
+        List<Object[]> readRateDataList = messageRepository.getMessagesReadRate(currentUser);
         long readCount = 0;
         long totalCount = 0;
         
-        if (readRateData != null && readRateData.length == 2) {
-            readCount = readRateData[0] != null ? ((Number) readRateData[0]).longValue() : 0;
-            totalCount = readRateData[1] != null ? ((Number) readRateData[1]).longValue() : 0;
+        if (readRateDataList != null && !readRateDataList.isEmpty()) {
+            Object[] readRateData = readRateDataList.get(0);
+            if (readRateData != null && readRateData.length == 2) {
+                readCount = readRateData[0] != null ? ((Number) readRateData[0]).longValue() : 0;
+                totalCount = readRateData[1] != null ? ((Number) readRateData[1]).longValue() : 0;
+            }
         }
         
         double readRate = totalCount > 0 ? (double) readCount / totalCount * 100 : 0;

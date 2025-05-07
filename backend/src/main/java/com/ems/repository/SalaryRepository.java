@@ -22,12 +22,12 @@ public interface SalaryRepository extends JpaRepository<Salary, Long> {
     // Basic queries
     List<Salary> findByEmployee(Employee employee);
     
-    Optional<Salary> findByEmployeeAndSalaryMonthAndSalaryYear(Employee employee, Integer month, Integer year);
+    List<Salary> findByEmployeeAndSalaryMonthAndSalaryYear(Employee employee, Integer month, Integer year);
     
     // Find most recent salary for an employee
     @Query("SELECT s FROM Salary s WHERE s.employee = :employee " +
            "ORDER BY s.salaryYear DESC, s.salaryMonth DESC")
-    Optional<Salary> findMostRecentByEmployee(@Param("employee") Employee employee, Pageable pageable);
+    List<Salary> findMostRecentByEmployee(@Param("employee") Employee employee, Pageable pageable);
     
     // Find salaries by user (company owner/manager)
     @Query("SELECT s FROM Salary s WHERE s.employee.user = :user ORDER BY s.salaryYear DESC, s.salaryMonth DESC")
@@ -38,7 +38,7 @@ public interface SalaryRepository extends JpaRepository<Salary, Long> {
     
     // Find salary by ID with user verification
     @Query("SELECT s FROM Salary s WHERE s.id = :id AND s.employee.user = :user")
-    Optional<Salary> findByIdAndUser(@Param("id") Long id, @Param("user") User user);
+    List<Salary> findByIdAndUser(@Param("id") Long id, @Param("user") User user);
     
     // Find salaries for a specific employee
     @Query("SELECT s FROM Salary s WHERE s.employee.id = :employeeId AND s.employee.user = :user " +
@@ -55,27 +55,27 @@ public interface SalaryRepository extends JpaRepository<Salary, Long> {
     @Query("SELECT SUM(s.grossSalary) FROM Salary s WHERE s.employee.user = :user AND " +
            "s.employee.status = :status AND s.salaryYear = FUNCTION('YEAR', CURRENT_DATE) AND " +
            "s.salaryMonth = FUNCTION('MONTH', CURRENT_DATE)")
-    Optional<Double> sumGrossSalaryByUserForCurrentMonth(@Param("user") User user, @Param("status") Status status);
+    List<Double> sumGrossSalaryByUserForCurrentMonth(@Param("user") User user, @Param("status") Status status);
     
     @Query("SELECT SUM(s.netSalary) FROM Salary s WHERE s.employee.user = :user AND " +
            "s.employee.status = :status AND s.salaryYear = FUNCTION('YEAR', CURRENT_DATE) AND " +
            "s.salaryMonth = FUNCTION('MONTH', CURRENT_DATE)")
-    Optional<Double> sumNetSalaryByUserForCurrentMonth(@Param("user") User user, @Param("status") Status status);
+    List<Double> sumNetSalaryByUserForCurrentMonth(@Param("user") User user, @Param("status") Status status);
     
     @Query("SELECT AVG(s.grossSalary) FROM Salary s WHERE s.employee.user = :user AND " +
            "s.employee.status = :status AND s.salaryYear = FUNCTION('YEAR', CURRENT_DATE) AND " +
            "s.salaryMonth = FUNCTION('MONTH', CURRENT_DATE)")
-    Optional<Double> averageGrossSalaryByUserForCurrentMonth(@Param("user") User user, @Param("status") Status status);
+    List<Double> averageGrossSalaryByUserForCurrentMonth(@Param("user") User user, @Param("status") Status status);
     
     // Aggregate queries for specific month/year
     @Query("SELECT SUM(s.grossSalary) FROM Salary s WHERE s.employee.user = :user AND " +
            "s.employee.status = :status AND s.salaryYear = :year AND s.salaryMonth = :month")
-    Optional<Double> sumGrossSalaryByUserForMonth(@Param("user") User user, @Param("status") Status status, 
+    List<Double> sumGrossSalaryByUserForMonth(@Param("user") User user, @Param("status") Status status, 
                                       @Param("year") Integer year, @Param("month") Integer month);
     
     @Query("SELECT SUM(s.netSalary) FROM Salary s WHERE s.employee.user = :user AND " +
            "s.employee.status = :status AND s.salaryYear = :year AND s.salaryMonth = :month")
-    Optional<Double> sumNetSalaryByUserForMonth(@Param("user") User user, @Param("status") Status status, 
+    List<Double> sumNetSalaryByUserForMonth(@Param("user") User user, @Param("status") Status status, 
                                     @Param("year") Integer year, @Param("month") Integer month);
     
     // Department-based salary summaries

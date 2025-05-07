@@ -68,8 +68,11 @@ public class EmployeeInactivityService {
         Employee employee = employeeRepository.findByIdAndUser(employeeId, user)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + employeeId));
         
-        Optional<EmployeeInactivity> currentInactivity = employeeInactivityRepository.findCurrentInactivityByEmployeeId(employeeId);
-        return currentInactivity.map(this::convertToDto);
+        List<EmployeeInactivity> currentInactivities = employeeInactivityRepository.findCurrentInactivityByEmployeeId(employeeId);
+        if (currentInactivities.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(convertToDto(currentInactivities.get(0)));
     }
 
     @Transactional
@@ -275,8 +278,8 @@ public class EmployeeInactivityService {
         statistics.put("currentCount", currentCount);
         
         // Average duration (in days)
-        Optional<Double> averageDurationOpt = employeeInactivityRepository.calculateAverageDuration(user);
-        Double averageDuration = averageDurationOpt.orElse(0.0);
+        List<Double> averageDurations = employeeInactivityRepository.calculateAverageDuration(user);
+        Double averageDuration = averageDurations.isEmpty() ? 0.0 : averageDurations.get(0);
         statistics.put("averageDuration", averageDuration);
         
         // Inactivities by month

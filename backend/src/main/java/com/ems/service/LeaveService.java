@@ -38,6 +38,15 @@ public class LeaveService {
     @Autowired
     private LeaveRepository leaveRepository;
     
+    /**
+     * Utility method to handle List<Boolean> return types from repository methods
+     * @param booleanList The list returned from repository
+     * @return true if the list contains at least one true value, false otherwise
+     */
+    private boolean getBooleanResult(List<Boolean> booleanList) {
+        return booleanList != null && !booleanList.isEmpty() && booleanList.get(0);
+    }
+    
     @Autowired
     private EmployeeRepository employeeRepository;
     

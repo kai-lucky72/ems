@@ -94,7 +94,7 @@ public class AuthService implements UserDetailsService {
             );
         } 
         // Then check if it's an employee
-        else if (employeeRepository.existsByEmail(email)) {
+        else if (getBooleanResult(employeeRepository.existsByEmail(email))) {
             Employee employee = employeeRepository.findByEmail(email)
                     .orElseThrow(() -> new UsernameNotFoundException("Employee not found with email: " + email));
             
@@ -130,12 +130,12 @@ public class AuthService implements UserDetailsService {
     @Transactional
     public User registerUser(UserDto userDto) {
         // Check if email is already used by a manager
-        if (userRepository.existsByEmail(userDto.getEmail())) {
+        if (getBooleanResult(userRepository.existsByEmail(userDto.getEmail()))) {
             throw new BadRequestException("Email is already registered as a manager");
         }
         
         // Check if email is already used by an employee
-        if (employeeRepository.existsByEmail(userDto.getEmail())) {
+        if (getBooleanResult(employeeRepository.existsByEmail(userDto.getEmail()))) {
             throw new BadRequestException("Email is already registered as an employee");
         }
 
@@ -159,7 +159,7 @@ public class AuthService implements UserDetailsService {
         
         try {
             // Try to authenticate as Manager
-            if (userRepository.existsByEmail(email)) {
+            if (getBooleanResult(userRepository.existsByEmail(email))) {
                 authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken("M_" + email, password, Collections.emptyList())
                 );
@@ -175,7 +175,7 @@ public class AuthService implements UserDetailsService {
                 role = ROLE_MANAGER;
             } 
             // Try to authenticate as Employee
-            else if (employeeRepository.existsByEmail(email)) {
+            else if (getBooleanResult(employeeRepository.existsByEmail(email))) {
                 authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken("E_" + email, password, Collections.emptyList())
                 );
@@ -319,7 +319,7 @@ public class AuthService implements UserDetailsService {
     @Transactional
     public String generatePasswordResetToken(String email) {
         // Check if it's a manager
-        if (userRepository.existsByEmail(email)) {
+        if (getBooleanResult(userRepository.existsByEmail(email))) {
             User user = getUserByEmail(email);
             
             // Generate a random token
@@ -336,7 +336,7 @@ public class AuthService implements UserDetailsService {
             return token;
         } 
         // Check if it's an employee
-        else if (employeeRepository.existsByEmail(email)) {
+        else if (getBooleanResult(employeeRepository.existsByEmail(email))) {
             Employee employee = getEmployeeByEmail(email);
             
             // Generate a random token
@@ -359,7 +359,7 @@ public class AuthService implements UserDetailsService {
     @Transactional
     public void resetPassword(String token, String password) {
         // Check if it's a manager token
-        if (userRepository.existsByResetToken(token)) {
+        if (getBooleanResult(userRepository.existsByResetToken(token))) {
             User user = userRepository.findByResetToken(token)
                     .orElseThrow(() -> new BadRequestException("Invalid reset token"));
             
@@ -375,7 +375,7 @@ public class AuthService implements UserDetailsService {
             userRepository.save(user);
         } 
         // Check if it's an employee token
-        else if (employeeRepository.existsByResetToken(token)) {
+        else if (getBooleanResult(employeeRepository.existsByResetToken(token))) {
             Employee employee = employeeRepository.findByResetToken(token)
                     .orElseThrow(() -> new BadRequestException("Invalid reset token"));
             

@@ -133,7 +133,7 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
            "SUM(CASE WHEN m.isRead = true THEN 1 ELSE 0 END) as readCount, " +
            "COUNT(m) as totalCount " +
            "FROM Message m WHERE m.sender = :user")
-    Object[] getMessagesReadRate(@Param("user") User user);
+    List<Object[]> getMessagesReadRate(@Param("user") User user);
     
     /**
      * Find recent messages

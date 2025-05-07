@@ -137,10 +137,13 @@ public class SalaryService {
     @Transactional(readOnly = true)
     public SalaryDto getSalaryById(Long id) {
         User currentUser = authService.getCurrentUser();
-        Salary salary = salaryRepository.findByIdAndUser(id, currentUser)
-                .orElseThrow(() -> new ResourceNotFoundException("Salary not found with id: " + id));
+        List<Salary> salaries = salaryRepository.findByIdAndUser(id, currentUser);
         
-        return convertToDto(salary);
+        if (salaries.isEmpty()) {
+            throw new ResourceNotFoundException("Salary not found with id: " + id);
+        }
+        
+        return convertToDto(salaries.get(0));
     }
 
     /**
@@ -264,10 +267,10 @@ public class SalaryService {
         int salaryYear = salaryDto.getSalaryYear() != null ? salaryDto.getSalaryYear() : LocalDate.now().getYear();
         
         // Check if salary already exists for this employee in this month/year
-        Optional<Salary> existingSalary = salaryRepository.findByEmployeeAndSalaryMonthAndSalaryYear(
+        List<Salary> existingSalaries = salaryRepository.findByEmployeeAndSalaryMonthAndSalaryYear(
                 employee, salaryMonth, salaryYear);
         
-        if (existingSalary.isPresent()) {
+        if (!existingSalaries.isEmpty()) {
             throw new BadRequestException("Salary already exists for this employee in " + 
                 Month.of(salaryMonth).toString() + " " + salaryYear);
         }
@@ -325,8 +328,13 @@ public class SalaryService {
     @Transactional
     public SalaryDto updateSalary(Long id, SalaryDto salaryDto) {
         User currentUser = authService.getCurrentUser();
-        Salary salary = salaryRepository.findByIdAndUser(id, currentUser)
-                .orElseThrow(() -> new ResourceNotFoundException("Salary not found with id: " + id));
+        List<Salary> salaries = salaryRepository.findByIdAndUser(id, currentUser);
+        
+        if (salaries.isEmpty()) {
+            throw new ResourceNotFoundException("Salary not found with id: " + id);
+        }
+        
+        Salary salary = salaries.get(0);
         
         // Validate employee (should be the same employee)
         if (!salary.getEmployee().getId().equals(salaryDto.getEmployeeId())) {
@@ -384,8 +392,13 @@ public class SalaryService {
     @Transactional
     public void deleteSalary(Long id) {
         User currentUser = authService.getCurrentUser();
-        Salary salary = salaryRepository.findByIdAndUser(id, currentUser)
-                .orElseThrow(() -> new ResourceNotFoundException("Salary not found with id: " + id));
+        List<Salary> salaries = salaryRepository.findByIdAndUser(id, currentUser);
+        
+        if (salaries.isEmpty()) {
+            throw new ResourceNotFoundException("Salary not found with id: " + id);
+        }
+        
+        Salary salary = salaries.get(0);
         
         // Delete associated deductions first
         deductionRepository.deleteBySalary(salary);

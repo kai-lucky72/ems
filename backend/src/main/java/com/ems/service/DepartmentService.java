@@ -51,6 +51,15 @@ public class DepartmentService {
     
     @Autowired
     private EmployeeService employeeService;
+    
+    /**
+     * Utility method to handle List<Boolean> return types from repository methods
+     * @param booleanList The list returned from repository
+     * @return true if the list contains at least one true value, false otherwise
+     */
+    private boolean getBooleanResult(List<Boolean> booleanList) {
+        return booleanList != null && !booleanList.isEmpty() && booleanList.get(0);
+    }
 
     /**
      * Get all departments for the current user's company
@@ -320,7 +329,7 @@ public class DepartmentService {
         User currentUser = authService.getCurrentUser();
         
         // Check if department with same name already exists for the user
-        if (departmentRepository.existsByNameAndUser(departmentDto.getName(), currentUser)) {
+        if (getBooleanResult(departmentRepository.existsByNameAndUser(departmentDto.getName(), currentUser))) {
             throw new BadRequestException("Department with this name already exists");
         }
         
@@ -345,7 +354,7 @@ public class DepartmentService {
         
         // Check if department with same name already exists (excluding this one)
         if (!department.getName().equals(departmentDto.getName()) && 
-            departmentRepository.existsByNameAndUser(departmentDto.getName(), currentUser)) {
+            getBooleanResult(departmentRepository.existsByNameAndUser(departmentDto.getName(), currentUser))) {
             throw new BadRequestException("Department with this name already exists");
         }
         
