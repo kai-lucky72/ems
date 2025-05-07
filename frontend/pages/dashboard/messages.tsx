@@ -1,183 +1,161 @@
 import { useState, useEffect } from 'react';
 import { NextPage } from 'next';
+import Link from 'next/link';
 import Layout from '@/components/Layout';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import { getUser } from '@/lib/auth';
+import { fetchMessages } from '@/lib/api';
+import { isManager } from '@/lib/auth';
 import { Message } from '@/types';
 
 const MessagesPage: NextPage = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
-  const [replyText, setReplyText] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const userIsManager = isManager();
 
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
+    const loadMessages = async () => {
       try {
-        // Mock messages data
-        const mockMessages: Message[] = [
-          {
-            id: 1,
-            employeeId: 1,
-            employeeName: 'John Doe',
-            subject: 'Welcome to the Engineering Team',
-            content: 'Hello John,\n\nWe are excited to welcome you to our Engineering team! Please let me know if you have any questions about your role or the company.\n\nBest regards,\nEmily Johnson\nEngineering Manager',
-            sentAt: '2023-05-15T09:30:00Z',
-            status: 'SENT'
-          },
-          {
-            id: 2,
-            employeeId: 1,
-            employeeName: 'John Doe',
-            subject: 'Annual Performance Review',
-            content: 'Dear John,\n\nThis is a reminder that your annual performance review is scheduled for July 15th at 10:00 AM. Please prepare a short summary of your achievements over the past year.\n\nRegards,\nHR Department',
-            sentAt: '2023-06-20T14:15:00Z',
-            status: 'SENT'
-          },
-          {
-            id: 3,
-            employeeId: 1,
-            employeeName: 'John Doe',
-            subject: 'Company-wide Meeting',
-            content: 'Hi everyone,\n\nWe will be having a company-wide meeting next Friday at 2:00 PM to discuss quarterly results and future plans. Attendance is mandatory.\n\nThanks,\nManagement Team',
-            sentAt: '2023-07-01T11:45:00Z',
-            status: 'SENT'
-          }
-        ];
-        
-        setMessages(mockMessages);
-        setLoading(false);
-      } catch (err) {
-        console.error('Error fetching messages:', err);
+        setLoading(true);
+        const data = await fetchMessages();
+        setMessages(data);
+        setError('');
+      } catch (err: any) {
+        console.error('Failed to fetch messages:', err);
         setError('Failed to load messages. Please try again later.');
+      } finally {
         setLoading(false);
       }
-    }, 1000);
+    };
+
+    loadMessages();
   }, []);
 
+  // Format date to a more readable format
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
-  const handleReply = () => {
-    if (!selectedMessage || !replyText.trim()) return;
-    
-    // In a real app, this would send the reply to the backend
-    alert(`Reply to "${selectedMessage.subject}" sent.`);
-    setReplyText('');
-    setSelectedMessage(null);
-  };
+  // Filter messages based on search query
+  const filteredMessages = messages.filter(message => {
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      message.subject.toLowerCase().includes(searchLower) ||
+      message.employeeName.toLowerCase().includes(searchLower) ||
+      message.content.toLowerCase().includes(searchLower)
+    );
+  });
 
   return (
     <ProtectedRoute>
       <Layout>
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold">My Messages</h1>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <h1 className="text-2xl font-bold">Messages</h1>
+            {userIsManager && (
+              <Link 
+                href="/dashboard/messaging" 
+                className="mt-3 sm:mt-0 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+              >
+                <svg
+                  className="-ml-1 mr-2 h-5 w-5"
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                New Message
+              </Link>
+            )}
           </div>
-          
-          {error ? (
+
+          {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
               {error}
             </div>
-          ) : loading ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
-              {/* Message list */}
-              <div className="bg-white rounded-lg shadow overflow-hidden">
-                <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
-                  <h2 className="text-lg font-semibold">Inbox</h2>
+          )}
+
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="p-4 border-b">
+              <div className="flex">
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    placeholder="Search messages..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="input"
+                  />
                 </div>
-                <div className="divide-y divide-gray-200 max-h-[calc(100vh-270px)] overflow-y-auto">
-                  {messages.length === 0 ? (
-                    <div className="p-6 text-center text-gray-500">
-                      No messages to display
+              </div>
+            </div>
+
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+              </div>
+            ) : filteredMessages.length === 0 ? (
+              <div className="p-6 text-center text-gray-500">
+                {searchQuery ? 'No messages matching your search criteria.' : 'No messages available.'}
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-200">
+                {filteredMessages.map((message) => (
+                  <div
+                    key={message.id}
+                    className="p-6 hover:bg-gray-50 transition duration-150 ease-in-out"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2">
+                      <h3 className="text-lg font-medium text-gray-900">{message.subject}</h3>
+                      <span className="text-sm text-gray-500 mt-1 sm:mt-0">
+                        {formatDate(message.sentAt)}
+                      </span>
                     </div>
-                  ) : (
-                    messages.map((message) => (
-                      <div
-                        key={message.id}
-                        onClick={() => setSelectedMessage(message)}
-                        className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
-                          selectedMessage?.id === message.id ? 'bg-gray-100' : ''
+                    
+                    <p className="text-sm text-gray-500 mb-4">
+                      {userIsManager ? `To: ${message.employeeName}` : `From: ${message.employeeName}`}
+                    </p>
+                    
+                    <div className="prose prose-sm max-w-none text-gray-700 whitespace-pre-wrap">
+                      {message.content}
+                    </div>
+                    
+                    <div className="mt-4 flex justify-between items-center">
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          message.status === 'SENT' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                         }`}
                       >
-                        <div className="flex justify-between mb-1">
-                          <h3 className="font-medium truncate">{message.subject}</h3>
-                          <span className="text-xs text-gray-500 whitespace-nowrap ml-2">{formatDate(message.sentAt).split(',')[0]}</span>
-                        </div>
-                        <p className="text-sm text-gray-500 line-clamp-2">
-                          {message.content.split('\n')[0]}
-                        </p>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-              
-              {/* Message content */}
-              <div className="bg-white rounded-lg shadow overflow-hidden md:col-span-2">
-                {selectedMessage ? (
-                  <div className="flex flex-col h-full">
-                    <div className="px-6 py-4 border-b border-gray-200">
-                      <h2 className="text-xl font-semibold">{selectedMessage.subject}</h2>
-                      <div className="flex justify-between mt-2 text-sm text-gray-500">
-                        <span>From: HR</span>
-                        <span>{formatDate(selectedMessage.sentAt)}</span>
-                      </div>
-                    </div>
-                    <div className="p-6 flex-grow overflow-y-auto">
-                      <div className="whitespace-pre-line">
-                        {selectedMessage.content}
-                      </div>
-                    </div>
-                    <div className="p-4 border-t border-gray-200">
-                      <div className="mb-2">
-                        <textarea
-                          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                          rows={3}
-                          placeholder="Write your reply..."
-                          value={replyText}
-                          onChange={(e) => setReplyText(e.target.value)}
-                        ></textarea>
-                      </div>
-                      <div className="flex justify-end space-x-2">
-                        <button
-                          className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-                          onClick={() => setSelectedMessage(null)}
+                        {message.status}
+                      </span>
+                      
+                      {userIsManager && (
+                        <Link
+                          href={`/dashboard/messaging?employeeId=${message.employeeId}`}
+                          className="text-primary hover:text-primary-dark font-medium text-sm"
                         >
-                          Cancel
-                        </button>
-                        <button
-                          className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark"
-                          onClick={handleReply}
-                          disabled={!replyText.trim()}
-                        >
-                          Send Reply
-                        </button>
-                      </div>
+                          Reply
+                        </Link>
+                      )}
                     </div>
                   </div>
-                ) : (
-                  <div className="flex items-center justify-center h-full text-gray-500 p-6">
-                    Select a message to view its content
-                  </div>
-                )}
+                ))}
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </Layout>
     </ProtectedRoute>

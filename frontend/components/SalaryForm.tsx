@@ -1,11 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Salary, Deduction } from '@/types';
-
-interface Employee {
-  id: number;
-  name: string;
-  departmentName: string;
-}
+import { Deduction, Employee, Salary } from '@/types';
 
 interface SalaryFormProps {
   salary: Salary | null;
@@ -23,91 +17,98 @@ const SalaryForm: React.FC<SalaryFormProps> = ({
   onCancel,
 }) => {
   const [formData, setFormData] = useState({
-    employeeId: initialEmployeeId || 0,
+    employeeId: initialEmployeeId || (employees.length > 0 ? employees[0].id : 0),
     grossSalary: 0,
+    netSalary: 0,
   });
-  
-  const [deductions, setDeductions] = useState<Deduction[]>([]);
+
+  const [deductions, setDeductions] = useState<Deduction[]>([
+    { type: 'TAX', name: 'Income Tax', value: 20, isPercentage: true },
+    { type: 'INSURANCE', name: 'Health Insurance', value: 5, isPercentage: true },
+  ]);
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [newDeduction, setNewDeduction] = useState<Deduction>({
-    type: 'TAX',
+    type: 'CUSTOM',
     name: '',
     value: 0,
     isPercentage: true,
   });
-  
-  const [netSalary, setNetSalary] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
-  // Initialize form with salary data if editing
+  // When salary or employeeId prop changes, update the form data
   useEffect(() => {
     if (salary) {
       setFormData({
         employeeId: salary.employeeId,
         grossSalary: salary.grossSalary,
+        netSalary: salary.netSalary,
       });
-      setDeductions(salary.deductions || []);
+      setDeductions(salary.deductions);
     } else if (initialEmployeeId) {
       setFormData(prev => ({
         ...prev,
         employeeId: initialEmployeeId,
       }));
-    } else if (employees.length > 0) {
-      setFormData(prev => ({
-        ...prev,
-        employeeId: employees[0].id,
-      }));
     }
-  }, [salary, initialEmployeeId, employees]);
+  }, [salary, initialEmployeeId]);
 
-  // Calculate net salary whenever gross salary or deductions change
+  // Calculate net salary based on gross salary and deductions
   useEffect(() => {
-    let totalDeductionAmount = 0;
+    let netAmount = formData.grossSalary;
     
     deductions.forEach(deduction => {
-      if (deduction.isPercentage) {
-        totalDeductionAmount += (formData.grossSalary * deduction.value) / 100;
-      } else {
-        totalDeductionAmount += deduction.value;
-      }
+      const deductionAmount = deduction.isPercentage
+        ? (formData.grossSalary * deduction.value) / 100
+        : deduction.value;
+      
+      netAmount -= deductionAmount;
     });
     
-    setNetSalary(formData.grossSalary - totalDeductionAmount);
-  }, [formData.grossSalary, deductions]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'employeeId' ? Number(value) : parseFloat(value),
+      netSalary: netAmount > 0 ? netAmount : 0,
     }));
+  }, [formData.grossSalary, deductions]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    
+    if (name === 'employeeId') {
+      setFormData(prev => ({ ...prev, employeeId: Number(value) }));
+    } else if (name === 'grossSalary') {
+      setFormData(prev => ({ ...prev, grossSalary: Number(value) }));
+    }
   };
 
   const handleNewDeductionChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    const checked = type === 'checkbox' ? (e.target as HTMLInputElement).checked : undefined;
     
-    setNewDeduction(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : 
-              name === 'value' ? parseFloat(value) : value,
-    }));
+    if (name === 'type') {
+      setNewDeduction(prev => ({ ...prev, type: value as 'TAX' | 'INSURANCE' | 'CUSTOM' }));
+    } else if (name === 'name') {
+      setNewDeduction(prev => ({ ...prev, name: value }));
+    } else if (name === 'value') {
+      setNewDeduction(prev => ({ ...prev, value: Number(value) }));
+    } else if (name === 'isPercentage') {
+      setNewDeduction(prev => ({ ...prev, isPercentage: type === 'checkbox' ? (e.target as HTMLInputElement).checked : prev.isPercentage }));
+    }
   };
 
-  const handleAddDeduction = () => {
-    if (!newDeduction.name) {
+  const addDeduction = () => {
+    if (!newDeduction.name.trim()) {
       setError('Deduction name is required');
       return;
     }
-
+    
     if (newDeduction.value <= 0) {
-      setError('Deduction value must be greater than zero');
+      setError('Deduction value must be greater than 0');
       return;
     }
-
-    setDeductions(prev => [...prev, newDeduction]);
+    
+    setDeductions(prev => [...prev, { ...newDeduction }]);
     setNewDeduction({
-      type: 'TAX',
+      type: 'CUSTOM',
       name: '',
       value: 0,
       isPercentage: true,
@@ -115,35 +116,42 @@ const SalaryForm: React.FC<SalaryFormProps> = ({
     setError('');
   };
 
-  const handleRemoveDeduction = (index: number) => {
+  const removeDeduction = (index: number) => {
     setDeductions(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (formData.grossSalary <= 0) {
+      setError('Gross salary must be greater than 0');
+      return;
+    }
+    
     setLoading(true);
     setError('');
 
     try {
-      // Validate form data
-      if (formData.grossSalary <= 0) {
-        throw new Error('Gross salary must be greater than zero');
-      }
-      
-      if (formData.employeeId === 0) {
-        throw new Error('Please select an employee');
-      }
-
       await onSubmit({
         employeeId: formData.employeeId,
         grossSalary: formData.grossSalary,
-        deductions: deductions,
+        deductions,
       });
     } catch (err: any) {
-      setError(err.message || 'Failed to save salary data');
+      setError(err.message || 'Failed to save salary information. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Find selected employee details for display
+  const selectedEmployee = employees.find(emp => emp.id === formData.employeeId);
+  
+  // Calculate each deduction amount for display
+  const getDeductionAmount = (deduction: Deduction) => {
+    return deduction.isPercentage
+      ? (formData.grossSalary * deduction.value) / 100
+      : deduction.value;
   };
 
   return (
@@ -154,186 +162,190 @@ const SalaryForm: React.FC<SalaryFormProps> = ({
         </div>
       )}
 
-      <div className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="employeeId" className="label">
-              Employee
-            </label>
-            <select
-              id="employeeId"
-              name="employeeId"
-              value={formData.employeeId}
-              onChange={handleInputChange}
-              disabled={!!initialEmployeeId || !!salary}
-              className="input"
-              required
-            >
-              <option value="">Select Employee</option>
-              {employees.map((employee) => (
-                <option key={employee.id} value={employee.id}>
-                  {employee.name} - {employee.departmentName}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="grossSalary" className="label">
-              Gross Salary
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <span className="text-gray-500 sm:text-sm">$</span>
-              </div>
-              <input
-                id="grossSalary"
-                name="grossSalary"
-                type="number"
-                min="0"
-                step="0.01"
-                required
-                value={formData.grossSalary}
-                onChange={handleInputChange}
-                className="input pl-7"
-              />
-            </div>
-          </div>
+      <div>
+        <label htmlFor="employeeId" className="block text-sm font-medium text-gray-700">
+          Employee
+        </label>
+        <div className="mt-1">
+          <select
+            id="employeeId"
+            name="employeeId"
+            value={formData.employeeId}
+            onChange={handleChange}
+            className="shadow-sm focus:ring-primary focus:border-primary block w-full sm:text-sm border-gray-300 rounded-md"
+            disabled={initialEmployeeId !== null || salary !== null}
+          >
+            {employees.map(employee => (
+              <option key={employee.id} value={employee.id}>
+                {employee.name} ({employee.departmentName})
+              </option>
+            ))}
+          </select>
         </div>
+        {selectedEmployee && (
+          <p className="mt-1 text-sm text-gray-500">
+            {selectedEmployee.role} - {selectedEmployee.contractType.replace('_', ' ')}
+          </p>
+        )}
+      </div>
 
-        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-          <h3 className="text-lg font-medium mb-4">Deductions</h3>
-          
-          <div className="space-y-2 mb-4">
-            {deductions.length === 0 ? (
-              <div className="text-gray-500 italic">No deductions added</div>
-            ) : (
-              <div className="space-y-2">
-                {deductions.map((deduction, index) => (
-                  <div key={index} className="flex items-center justify-between bg-white p-3 rounded border">
-                    <div>
-                      <span className="font-medium">{deduction.name}</span>
-                      <span className="ml-2 text-sm text-gray-500">({deduction.type})</span>
-                      <div className="text-sm">
-                        {deduction.value}
-                        {deduction.isPercentage ? '%' : ' $'} 
-                        {deduction.isPercentage && 
-                          <span className="text-gray-500">
-                            (${((formData.grossSalary * deduction.value) / 100).toFixed(2)})
-                          </span>
-                        }
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveDeduction(index)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="bg-white p-4 rounded border">
-            <h4 className="font-medium mb-3">Add New Deduction</h4>
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-              <div className="md:col-span-3">
-                <label htmlFor="type" className="label">Type</label>
-                <select
-                  id="type"
-                  name="type"
-                  value={newDeduction.type}
-                  onChange={handleNewDeductionChange}
-                  className="input"
-                >
-                  <option value="TAX">Tax</option>
-                  <option value="INSURANCE">Insurance</option>
-                  <option value="CUSTOM">Custom</option>
-                </select>
-              </div>
-              
-              <div className="md:col-span-4">
-                <label htmlFor="name" className="label">Name</label>
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  value={newDeduction.name}
-                  onChange={handleNewDeductionChange}
-                  className="input"
-                  placeholder="e.g. Income Tax"
-                />
-              </div>
-
-              <div className="md:col-span-3">
-                <label htmlFor="value" className="label">Value</label>
-                <input
-                  id="value"
-                  name="value"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={newDeduction.value}
-                  onChange={handleNewDeductionChange}
-                  className="input"
-                />
-              </div>
-
-              <div className="md:col-span-2 flex items-end">
-                <div className="flex items-center h-10">
-                  <input
-                    id="isPercentage"
-                    name="isPercentage"
-                    type="checkbox"
-                    checked={newDeduction.isPercentage}
-                    onChange={handleNewDeductionChange}
-                    className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
-                  />
-                  <label htmlFor="isPercentage" className="ml-2 block text-sm text-gray-700">
-                    Percentage
-                  </label>
-                </div>
-              </div>
-            </div>
-            <div className="mt-3 flex justify-end">
-              <button
-                type="button"
-                onClick={handleAddDeduction}
-                className="btn btn-secondary"
-              >
-                Add Deduction
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-          <div className="flex justify-between items-center">
-            <span className="text-lg font-medium">Net Salary:</span>
-            <span className="text-xl font-bold text-blue-800">
-              ${netSalary.toFixed(2)}
-            </span>
-          </div>
+      <div>
+        <label htmlFor="grossSalary" className="block text-sm font-medium text-gray-700">
+          Gross Salary
+        </label>
+        <div className="mt-1 relative rounded-md shadow-sm">
+          <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">
+            $
+          </span>
+          <input
+            type="number"
+            id="grossSalary"
+            name="grossSalary"
+            min="0"
+            step="0.01"
+            value={formData.grossSalary}
+            onChange={handleChange}
+            className="focus:ring-primary focus:border-primary block w-full pl-8 pr-12 sm:text-sm border-gray-300 rounded-md"
+            required
+          />
         </div>
       </div>
 
-      <div className="flex justify-end space-x-3">
+      <div className="bg-gray-50 p-4 rounded-md">
+        <h3 className="text-md font-medium text-gray-800 mb-3">Deductions</h3>
+        
+        <div className="space-y-4">
+          {deductions.map((deduction, index) => (
+            <div key={index} className="flex items-center justify-between bg-white p-3 rounded shadow-sm">
+              <div>
+                <span className="font-medium">{deduction.name}</span>
+                <span className="text-sm text-gray-500 ml-2">
+                  ({deduction.type})
+                </span>
+                <p className="text-sm">
+                  {deduction.isPercentage ? (
+                    <span>{deduction.value}% (${getDeductionAmount(deduction).toFixed(2)})</span>
+                  ) : (
+                    <span>${deduction.value.toFixed(2)}</span>
+                  )}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => removeDeduction(index)}
+                className="text-red-600 hover:text-red-800 focus:outline-none"
+              >
+                <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* Add New Deduction */}
+        <div className="mt-4 space-y-3">
+          <h4 className="text-sm font-medium text-gray-700">Add New Deduction</h4>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="deduction-type" className="block text-xs font-medium text-gray-500">
+                Type
+              </label>
+              <select
+                id="deduction-type"
+                name="type"
+                value={newDeduction.type}
+                onChange={handleNewDeductionChange}
+                className="mt-1 block w-full text-sm border-gray-300 rounded-md"
+              >
+                <option value="TAX">Tax</option>
+                <option value="INSURANCE">Insurance</option>
+                <option value="CUSTOM">Custom</option>
+              </select>
+            </div>
+            
+            <div>
+              <label htmlFor="deduction-name" className="block text-xs font-medium text-gray-500">
+                Name
+              </label>
+              <input
+                type="text"
+                id="deduction-name"
+                name="name"
+                value={newDeduction.name}
+                onChange={handleNewDeductionChange}
+                placeholder="e.g., Retirement Fund"
+                className="mt-1 block w-full text-sm border-gray-300 rounded-md"
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="deduction-value" className="block text-xs font-medium text-gray-500">
+                Value
+              </label>
+              <input
+                type="number"
+                id="deduction-value"
+                name="value"
+                min="0"
+                step="0.01"
+                value={newDeduction.value}
+                onChange={handleNewDeductionChange}
+                className="mt-1 block w-full text-sm border-gray-300 rounded-md"
+              />
+            </div>
+            
+            <div className="flex items-end">
+              <div className="flex items-center h-10">
+                <input
+                  id="is-percentage"
+                  name="isPercentage"
+                  type="checkbox"
+                  checked={newDeduction.isPercentage}
+                  onChange={handleNewDeductionChange}
+                  className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                />
+                <label htmlFor="is-percentage" className="ml-2 block text-sm text-gray-700">
+                  Is Percentage
+                </label>
+              </div>
+            </div>
+          </div>
+          
+          <button
+            type="button"
+            onClick={addDeduction}
+            className="w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary-dark focus:outline-none"
+          >
+            Add Deduction
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-blue-50 p-4 rounded-md">
+        <div className="flex justify-between items-center">
+          <h3 className="text-md font-medium text-gray-800">Net Salary</h3>
+          <span className="text-xl font-bold">${formData.netSalary.toFixed(2)}</span>
+        </div>
+      </div>
+
+      <div className="flex justify-end space-x-3 pt-4">
         <button
           type="button"
           onClick={onCancel}
-          className="btn border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+          className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="btn btn-primary"
+          className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
         >
-          {loading ? 'Saving...' : 'Save Salary'}
+          {loading ? 'Saving...' : (salary ? 'Update Salary' : 'Create Salary')}
         </button>
       </div>
     </form>
