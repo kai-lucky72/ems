@@ -25,7 +25,7 @@ public interface DepartmentRepository extends JpaRepository<Department, Long> {
     
     Optional<Department> findByIdAndUser(Long id, User user);
     
-    boolean existsByNameAndUser(String name, User user);
+    List<Boolean> existsByNameAndUser(String name, User user);
     
     Optional<Department> findByNameAndUser(String name, User user);
     
@@ -59,7 +59,7 @@ public interface DepartmentRepository extends JpaRepository<Department, Long> {
     List<Object[]> countActiveEmployeesByDepartment(@Param("user") User user, @Param("status") Status status);
     
     @Query("SELECT COUNT(d) FROM Department d WHERE d.user = :user")
-    long countByUser(@Param("user") User user);
+    List<Long> countByUser(@Param("user") User user);
     
     // Budget-related queries
     @Query("SELECT d FROM Department d WHERE d.user = :user AND d.budgetType = :budgetType")

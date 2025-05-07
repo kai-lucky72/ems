@@ -263,13 +263,15 @@ public class EmployeeInactivityService {
         // Count by type
         Map<InactivityType, Long> countByType = new HashMap<>();
         for (InactivityType type : InactivityType.values()) {
-            long count = employeeInactivityRepository.countByTypeAndUser(type, user);
+            List<Long> countList = employeeInactivityRepository.countByTypeAndUser(type, user);
+            long count = countList.isEmpty() ? 0L : countList.get(0);
             countByType.put(type, count);
         }
         statistics.put("countByType", countByType);
         
         // Current inactivities
-        long currentCount = employeeInactivityRepository.countCurrentInactivities(user);
+        List<Long> currentCountList = employeeInactivityRepository.countCurrentInactivities(user);
+        long currentCount = currentCountList.isEmpty() ? 0L : currentCountList.get(0);
         statistics.put("currentCount", currentCount);
         
         // Average duration (in days)

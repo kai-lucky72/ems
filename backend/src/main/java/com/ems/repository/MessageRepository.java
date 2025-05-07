@@ -60,7 +60,7 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
      * Count unread messages for employee
      */
     @Query("SELECT COUNT(m) FROM Message m WHERE m.employee = :employee AND m.isRead = false")
-    long countUnreadByEmployee(@Param("employee") Employee employee);
+    List<Long> countUnreadByEmployee(@Param("employee") Employee employee);
     
     /**
      * Find messages by status
@@ -72,7 +72,7 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
      * Count messages by status
      */
     @Query("SELECT COUNT(m) FROM Message m WHERE m.sender = :user AND m.status = :status")
-    long countBySenderAndStatus(@Param("user") User user, @Param("status") Status status);
+    List<Long> countBySenderAndStatus(@Param("user") User user, @Param("status") Status status);
     
     /**
      * Search messages by subject or content

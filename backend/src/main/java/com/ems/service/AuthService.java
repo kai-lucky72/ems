@@ -62,10 +62,19 @@ public class AuthService implements UserDetailsService {
     @Autowired
     private EmailService emailService;
     
+    /**
+     * Utility method to handle List<Boolean> return types from repository methods
+     * @param booleanList The list returned from repository
+     * @return true if the list contains at least one true value, false otherwise
+     */
+    private boolean getBooleanResult(List<Boolean> booleanList) {
+        return booleanList != null && !booleanList.isEmpty() && booleanList.get(0);
+    }
+    
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         // First check if it's a manager (User)
-        if (userRepository.existsByEmail(email)) {
+        if (getBooleanResult(userRepository.existsByEmail(email))) {
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
             

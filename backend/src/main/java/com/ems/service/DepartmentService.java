@@ -201,7 +201,8 @@ public class DepartmentService {
         Map<String, Object> statistics = new HashMap<>();
         
         // Basic stats
-        long totalDepartments = departmentRepository.countByUser(currentUser);
+        List<Long> departmentCountList = departmentRepository.countByUser(currentUser);
+        long totalDepartments = departmentCountList.isEmpty() ? 0L : departmentCountList.get(0);
         Optional<Double> totalBudgetOpt = departmentRepository.sumBudgetByUser(currentUser);
         Double totalBudget = totalBudgetOpt.orElse(0.0);
         

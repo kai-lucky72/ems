@@ -35,7 +35,7 @@ public interface LeaveRepository extends JpaRepository<Leave, Long> {
     /**
      * Count leaves by employee and status
      */
-    long countByEmployeeAndStatus(Employee employee, Status status);
+    List<Long> countByEmployeeAndStatus(Employee employee, Status status);
     
     /**
      * Find all leaves for a user's company ordered by request date
@@ -65,7 +65,7 @@ public interface LeaveRepository extends JpaRepository<Leave, Long> {
      * Count leaves by user and status
      */
     @Query("SELECT COUNT(l) FROM Leave l WHERE l.employee.user = :user AND l.status = :status")
-    long countByUserAndStatus(@Param("user") User user, @Param("status") Status status);
+    List<Long> countByUserAndStatus(@Param("user") User user, @Param("status") Status status);
     
     /**
      * Find overlapping leave requests

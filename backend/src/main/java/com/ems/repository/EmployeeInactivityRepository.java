@@ -40,7 +40,7 @@ public interface EmployeeInactivityRepository extends JpaRepository<EmployeeInac
     
     // Count inactivities by type
     @Query("SELECT COUNT(ei) FROM EmployeeInactivity ei WHERE ei.type = :type AND ei.employee.user = :user")
-    long countByTypeAndUser(@Param("type") InactivityType type, @Param("user") User user);
+    List<Long> countByTypeAndUser(@Param("type") InactivityType type, @Param("user") User user);
     
     // Find inactivities by date range (that overlap with the given range)
     @Query("SELECT ei FROM EmployeeInactivity ei WHERE ei.employee.user = :user AND " +
@@ -58,7 +58,7 @@ public interface EmployeeInactivityRepository extends JpaRepository<EmployeeInac
     // Count current inactivities
     @Query("SELECT COUNT(ei) FROM EmployeeInactivity ei WHERE ei.employee.user = :user AND " +
            "(ei.endDate IS NULL OR ei.endDate >= CURRENT_DATE) AND ei.startDate <= CURRENT_DATE")
-    long countCurrentInactivities(@Param("user") User user);
+    List<Long> countCurrentInactivities(@Param("user") User user);
     
     // Find current inactivities
     @Query("SELECT ei FROM EmployeeInactivity ei WHERE ei.employee.user = :user AND " +
@@ -88,7 +88,7 @@ public interface EmployeeInactivityRepository extends JpaRepository<EmployeeInac
     // Count currently inactive employees
     @Query("SELECT COUNT(DISTINCT ei.employee) FROM EmployeeInactivity ei WHERE ei.employee.user = :user " +
            "AND ei.startDate <= CURRENT_DATE AND (ei.endDate IS NULL OR ei.endDate >= CURRENT_DATE)")
-    long countCurrentlyInactiveEmployees(@Param("user") User user);
+    List<Long> countCurrentlyInactiveEmployees(@Param("user") User user);
     
     // Find employees that have been inactive for more than X days
     @Query("SELECT ei FROM EmployeeInactivity ei WHERE ei.employee.user = :user " +

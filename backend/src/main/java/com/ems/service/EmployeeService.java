@@ -169,7 +169,8 @@ public class EmployeeService {
         }
         
         // Add pending leave count
-        long pendingLeaveCount = leaveRepository.countByEmployeeAndStatus(employee, Leave.Status.PENDING);
+        List<Long> pendingLeaveCountList = leaveRepository.countByEmployeeAndStatus(employee, Leave.Status.PENDING);
+        long pendingLeaveCount = pendingLeaveCountList.isEmpty() ? 0L : pendingLeaveCountList.get(0);
         dto.setPendingLeaveRequests((int) pendingLeaveCount);
         
         // Add inactivity history

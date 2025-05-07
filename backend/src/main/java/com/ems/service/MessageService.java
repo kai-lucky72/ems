@@ -164,9 +164,14 @@ public class MessageService {
         Map<String, Object> statistics = new HashMap<>();
         
         // Count messages by status
-        long sentCount = messageRepository.countBySenderAndStatus(currentUser, Status.SENT);
-        long deliveredCount = messageRepository.countBySenderAndStatus(currentUser, Status.DELIVERED);
-        long failedCount = messageRepository.countBySenderAndStatus(currentUser, Status.FAILED);
+        List<Long> sentCountList = messageRepository.countBySenderAndStatus(currentUser, Status.SENT);
+        long sentCount = sentCountList.isEmpty() ? 0L : sentCountList.get(0);
+        
+        List<Long> deliveredCountList = messageRepository.countBySenderAndStatus(currentUser, Status.DELIVERED);
+        long deliveredCount = deliveredCountList.isEmpty() ? 0L : deliveredCountList.get(0);
+        
+        List<Long> failedCountList = messageRepository.countBySenderAndStatus(currentUser, Status.FAILED);
+        long failedCount = failedCountList.isEmpty() ? 0L : failedCountList.get(0);
         
         Map<String, Long> statusCounts = new HashMap<>();
         statusCounts.put("sent", sentCount);

@@ -14,11 +14,11 @@ import com.ems.model.User;
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
     
-    boolean existsByEmail(String email);
+    List<Boolean> existsByEmail(String email);
     
     Optional<User> findByResetToken(String resetToken);
     
-    boolean existsByResetToken(String resetToken);
+    List<Boolean> existsByResetToken(String resetToken);
     
     @Query("SELECT u FROM User u WHERE u.roles LIKE %:role%")
     List<User> findByRole(@Param("role") String role);
@@ -33,5 +33,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findByCompanyName(@Param("companyName") String companyName);
     
     @Query("SELECT COUNT(u) FROM User u WHERE u.roles LIKE %:role%")
-    long countByRole(@Param("role") String role);
+    List<Long> countByRole(@Param("role") String role);
 }

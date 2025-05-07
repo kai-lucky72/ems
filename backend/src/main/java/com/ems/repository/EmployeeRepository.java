@@ -33,13 +33,13 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     @Query("SELECT e FROM Employee e WHERE e.email = :email")
     Optional<Employee> findByEmail(@Param("email") String email);
     
-    boolean existsByEmail(String email);
+    List<Boolean> existsByEmail(String email);
     
     Optional<Employee> findByActivationToken(String activationToken);
     
     Optional<Employee> findByResetToken(String resetToken);
     
-    boolean existsByResetToken(String resetToken);
+    List<Boolean> existsByResetToken(String resetToken);
     
     // Ordered queries for UI display
     @Query("SELECT e FROM Employee e WHERE e.user = :user ORDER BY e.name ASC")
@@ -60,7 +60,7 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     // Count queries for analytics
     @Query("SELECT COUNT(e) FROM Employee e WHERE e.user = :user AND e.status = :status " +
            "AND (:date IS NULL OR e.createdAt <= :date)")
-    long countByUserAndStatusAndDate(@Param("user") User user, @Param("status") Status status, 
+    List<Long> countByUserAndStatusAndDate(@Param("user") User user, @Param("status") Status status, 
                                     @Param("date") LocalDate date);
     
     @Query("SELECT e.role AS role, COUNT(e) AS count FROM Employee e WHERE e.user = :user GROUP BY e.role")

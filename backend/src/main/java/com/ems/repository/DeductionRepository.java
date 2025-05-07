@@ -45,7 +45,7 @@ public interface DeductionRepository extends JpaRepository<Deduction, Long> {
     
     // Analytics queries
     @Query("SELECT COUNT(d) FROM Deduction d WHERE d.type = :type AND d.salary.employee.user = :user")
-    long countByTypeAndUser(@Param("type") DeductionType type, @Param("user") User user);
+    List<Long> countByTypeAndUser(@Param("type") DeductionType type, @Param("user") User user);
     
     @Query("SELECT d.type, COUNT(d), AVG(d.value), SUM(CASE WHEN d.isPercentage = true THEN 1 ELSE 0 END) " +
            "FROM Deduction d WHERE d.salary.employee.user = :user GROUP BY d.type")

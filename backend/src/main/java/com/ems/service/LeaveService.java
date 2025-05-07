@@ -310,7 +310,8 @@ public class LeaveService {
         
         // Get current statistics
         long currentOnLeave = leaveRepository.findCurrentLeavesByUser(currentUser, Status.APPROVED).size();
-        long pendingRequests = leaveRepository.countByUserAndStatus(currentUser, Status.PENDING);
+        List<Long> pendingRequestsList = leaveRepository.countByUserAndStatus(currentUser, Status.PENDING);
+        long pendingRequests = pendingRequestsList.isEmpty() ? 0L : pendingRequestsList.get(0);
         
         statistics.put("currentOnLeave", currentOnLeave);
         statistics.put("pendingRequests", pendingRequests);
