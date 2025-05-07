@@ -1,6 +1,8 @@
 package com.ems.model;
 
+import java.time.Year;
 import java.time.LocalDateTime;
+import java.time.Month;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,49 +16,82 @@ public class Salary {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "employee_id", unique = true, nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "employee_id", nullable = false)
     private Employee employee;
 
-    @Column(nullable = false)
+    @Column(name = "gross_salary", nullable = false)
     private Double grossSalary;
 
-    @Column(nullable = false)
+    @Column(name = "tax_deduction", nullable = false)
+    private Double taxDeduction = 0.0;
+
+    @Column(name = "insurance_deduction", nullable = false)
+    private Double insuranceDeduction = 0.0;
+
+    @Column(name = "other_deductions", nullable = false)
+    private Double otherDeductions = 0.0;
+
+    // Net salary will be calculated by the database as a stored generated column
+    @Column(name = "net_salary", nullable = false)
     private Double netSalary;
+
+    @Column(name = "salary_month", nullable = false)
+    private Integer salaryMonth;
+
+    @Column(name = "salary_year", nullable = false)
+    private Integer salaryYear;
+
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
 
     @OneToMany(mappedBy = "salary", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Deduction> deductions = new ArrayList<>();
 
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
-
-    @Column(nullable = false)
-    private LocalDateTime updatedAt;
-
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        if (this.salaryMonth == null) {
+            this.salaryMonth = Month.valueOf(LocalDateTime.now().getMonth().name()).getValue();
+        }
+        if (this.salaryYear == null) {
+            this.salaryYear = Year.now().getValue();
+        }
         calculateNetSalary();
     }
 
     @PreUpdate
     protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
         calculateNetSalary();
     }
 
     // Calculate net salary
     public void calculateNetSalary() {
-        double totalDeductions = 0.0;
+        // Calculate other deductions from custom deductions
+        this.otherDeductions = 0.0;
         for (Deduction deduction : deductions) {
-            if (deduction.isPercentage()) {
-                totalDeductions += grossSalary * (deduction.getValue() / 100.0);
-            } else {
-                totalDeductions += deduction.getValue();
+            if (deduction.getType() == Deduction.DeductionType.TAX) {
+                if (deduction.isPercentage()) {
+                    this.taxDeduction = grossSalary * (deduction.getValue() / 100.0);
+                } else {
+                    this.taxDeduction = deduction.getValue();
+                }
+            } else if (deduction.getType() == Deduction.DeductionType.INSURANCE) {
+                if (deduction.isPercentage()) {
+                    this.insuranceDeduction = grossSalary * (deduction.getValue() / 100.0);
+                } else {
+                    this.insuranceDeduction = deduction.getValue();
+                }
+            } else if (deduction.getType() == Deduction.DeductionType.CUSTOM) {
+                if (deduction.isPercentage()) {
+                    this.otherDeductions += grossSalary * (deduction.getValue() / 100.0);
+                } else {
+                    this.otherDeductions += deduction.getValue();
+                }
             }
         }
-        this.netSalary = grossSalary - totalDeductions;
+        
+        this.netSalary = grossSalary - taxDeduction - insuranceDeduction - otherDeductions;
         if (this.netSalary < 0) {
             this.netSalary = 0.0;
         }
@@ -87,12 +122,52 @@ public class Salary {
         this.grossSalary = grossSalary;
     }
 
+    public Double getTaxDeduction() {
+        return taxDeduction;
+    }
+
+    public void setTaxDeduction(Double taxDeduction) {
+        this.taxDeduction = taxDeduction;
+    }
+
+    public Double getInsuranceDeduction() {
+        return insuranceDeduction;
+    }
+
+    public void setInsuranceDeduction(Double insuranceDeduction) {
+        this.insuranceDeduction = insuranceDeduction;
+    }
+
+    public Double getOtherDeductions() {
+        return otherDeductions;
+    }
+
+    public void setOtherDeductions(Double otherDeductions) {
+        this.otherDeductions = otherDeductions;
+    }
+
     public Double getNetSalary() {
         return netSalary;
     }
 
     public void setNetSalary(Double netSalary) {
         this.netSalary = netSalary;
+    }
+
+    public Integer getSalaryMonth() {
+        return salaryMonth;
+    }
+
+    public void setSalaryMonth(Integer salaryMonth) {
+        this.salaryMonth = salaryMonth;
+    }
+
+    public Integer getSalaryYear() {
+        return salaryYear;
+    }
+
+    public void setSalaryYear(Integer salaryYear) {
+        this.salaryYear = salaryYear;
     }
 
     public List<Deduction> getDeductions() {
@@ -125,13 +200,5 @@ public class Salary {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
     }
 }

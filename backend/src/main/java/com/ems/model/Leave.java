@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "leaves")
+@Table(name = "leave_requests")
 public class Leave {
 
     @Id
@@ -17,24 +17,24 @@ public class Leave {
     @JoinColumn(name = "employee_id", nullable = false)
     private Employee employee;
 
-    @Column(nullable = false)
+    @Column(name = "request_date", nullable = false)
+    private LocalDate requestDate;
+
+    @Column(name = "leave_start", nullable = false)
     private LocalDate startDate;
 
-    @Column(nullable = false)
+    @Column(name = "leave_end", nullable = false)
     private LocalDate endDate;
 
-    @Column(nullable = false, length = 1000)
+    @Column(length = 1000)
     private String reason;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Status status = Status.PENDING;
 
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
-
-    @Column(nullable = false)
-    private LocalDateTime updatedAt;
+    @Column(name = "decision_date")
+    private LocalDateTime decisionDate;
 
     public enum Status {
         PENDING, APPROVED, DENIED
@@ -42,13 +42,14 @@ public class Leave {
 
     @PrePersist
     protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        this.requestDate = LocalDate.now();
     }
 
     @PreUpdate
     protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
+        if (status == Status.APPROVED || status == Status.DENIED) {
+            this.decisionDate = LocalDateTime.now();
+        }
     }
 
     // Getters and Setters
@@ -66,6 +67,14 @@ public class Leave {
 
     public void setEmployee(Employee employee) {
         this.employee = employee;
+    }
+
+    public LocalDate getRequestDate() {
+        return requestDate;
+    }
+
+    public void setRequestDate(LocalDate requestDate) {
+        this.requestDate = requestDate;
     }
 
     public LocalDate getStartDate() {
@@ -100,20 +109,12 @@ public class Leave {
         this.status = status;
     }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
+    public LocalDateTime getDecisionDate() {
+        return decisionDate;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
+    public void setDecisionDate(LocalDateTime decisionDate) {
+        this.decisionDate = decisionDate;
     }
 
     // Get duration in days

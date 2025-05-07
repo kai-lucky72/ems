@@ -13,16 +13,20 @@ public class Message {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "employee_id", nullable = false)
+    @JoinColumn(name = "sender_user_id", nullable = false)
+    private User sender;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "recipient_employee_id", nullable = false)
     private Employee employee;
 
     @Column(nullable = false)
     private String subject;
 
-    @Column(nullable = false, length = 5000)
+    @Column(name = "body", nullable = false, length = 5000)
     private String content;
 
-    @Column(nullable = false)
+    @Column(name = "sent_at", nullable = false)
     private LocalDateTime sentAt;
 
     @Enumerated(EnumType.STRING)
@@ -45,6 +49,14 @@ public class Message {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public User getSender() {
+        return sender;
+    }
+
+    public void setSender(User sender) {
+        this.sender = sender;
     }
 
     public Employee getEmployee() {

@@ -65,6 +65,9 @@ public class Employee {
 
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL)
     private List<Message> messages = new ArrayList<>();
+    
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL)
+    private List<EmployeeInactivity> inactivityPeriods = new ArrayList<>();
 
     public enum ContractType {
         FULL_TIME, PART_TIME, REMOTE
@@ -211,6 +214,24 @@ public class Employee {
     public void setMessages(List<Message> messages) {
         this.messages = messages;
     }
+    
+    public List<EmployeeInactivity> getInactivityPeriods() {
+        return inactivityPeriods;
+    }
+    
+    public void setInactivityPeriods(List<EmployeeInactivity> inactivityPeriods) {
+        this.inactivityPeriods = inactivityPeriods;
+    }
+    
+    public void addInactivityPeriod(EmployeeInactivity inactivity) {
+        inactivityPeriods.add(inactivity);
+        inactivity.setEmployee(this);
+    }
+    
+    public void removeInactivityPeriod(EmployeeInactivity inactivity) {
+        inactivityPeriods.remove(inactivity);
+        inactivity.setEmployee(null);
+    }
 
     // Check if employee is on leave
     public boolean isOnLeave() {
@@ -219,6 +240,22 @@ public class Employee {
             if (leave.getStatus() == Leave.Status.APPROVED && 
                 !today.isBefore(leave.getStartDate()) && 
                 !today.isAfter(leave.getEndDate())) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    // Check if employee is currently inactive based on inactivity records
+    public boolean isCurrentlyInactive() {
+        if (!isActive) {
+            return true;
+        }
+        
+        LocalDate today = LocalDate.now();
+        for (EmployeeInactivity inactivity : inactivityPeriods) {
+            if (!today.isBefore(inactivity.getStartDate()) && 
+                (inactivity.getEndDate() == null || !today.isAfter(inactivity.getEndDate()))) {
                 return true;
             }
         }

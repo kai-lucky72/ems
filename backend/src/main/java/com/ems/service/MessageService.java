@@ -34,9 +34,10 @@ public class MessageService {
     @Transactional(readOnly = true)
     public List<MessageDto> getAllMessagesForCurrentUser() {
         User currentUser = authService.getCurrentUser();
-        List<Message> messages = messageRepository.findByUser(currentUser);
+        // Get all messages sent by this user or sent to employees in this user's organization
+        List<Message> sentMessages = messageRepository.findBySenderOrderBySentAtDesc(currentUser);
         
-        return messages.stream()
+        return sentMessages.stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
@@ -47,7 +48,8 @@ public class MessageService {
         Employee employee = employeeRepository.findByIdAndUser(employeeId, currentUser)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + employeeId));
         
-        List<Message> messages = messageRepository.findByEmployee(employee);
+        // Get messages sent to this specific employee
+        List<Message> messages = messageRepository.findBySenderAndEmployee(currentUser, employee);
         
         return messages.stream()
                 .map(this::convertToDto)
@@ -63,6 +65,7 @@ public class MessageService {
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + messageDto.getEmployeeId()));
         
         Message message = new Message();
+        message.setSender(currentUser);
         message.setEmployee(employee);
         message.setSubject(messageDto.getSubject());
         message.setContent(messageDto.getContent());
@@ -90,6 +93,7 @@ public class MessageService {
         dto.setId(message.getId());
         dto.setEmployeeId(message.getEmployee().getId());
         dto.setEmployeeName(message.getEmployee().getName());
+        dto.setSenderName(message.getSender().getFullName());
         dto.setSubject(message.getSubject());
         dto.setContent(message.getContent());
         dto.setSentAt(message.getSentAt());

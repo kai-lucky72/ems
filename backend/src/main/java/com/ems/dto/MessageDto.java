@@ -14,8 +14,9 @@ public class MessageDto {
     @NotNull(message = "Employee ID is required")
     private Long employeeId;
 
-    // This field is calculated, not required in input
+    // These fields are calculated, not required in input
     private String employeeName;
+    private String senderName;
 
     @NotBlank(message = "Subject is required")
     @Size(max = 200, message = "Subject must not exceed 200 characters")
@@ -54,6 +55,14 @@ public class MessageDto {
 
     public void setEmployeeName(String employeeName) {
         this.employeeName = employeeName;
+    }
+    
+    public String getSenderName() {
+        return senderName;
+    }
+    
+    public void setSenderName(String senderName) {
+        this.senderName = senderName;
     }
 
     public String getSubject() {

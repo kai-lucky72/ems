@@ -13,22 +13,22 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(name = "full_name", nullable = false)
     private String fullName;
 
     @Column(unique = true, nullable = false)
     private String email;
 
-    @Column(nullable = false)
+    @Column(name = "phone", nullable = false)
     private String phoneNumber;
 
-    @Column(nullable = false)
+    @Column(name = "company_name", nullable = false)
     private String companyName;
 
-    @Column(nullable = false)
+    @Column(name = "password_hash", nullable = false)
     private String password;
 
-    @Column(nullable = false)
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
@@ -36,6 +36,9 @@ public class User {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Employee> employees = new ArrayList<>();
+    
+    @OneToMany(mappedBy = "sender", cascade = CascadeType.ALL)
+    private List<Message> sentMessages = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {
@@ -113,5 +116,13 @@ public class User {
 
     public void setEmployees(List<Employee> employees) {
         this.employees = employees;
+    }
+    
+    public List<Message> getSentMessages() {
+        return sentMessages;
+    }
+    
+    public void setSentMessages(List<Message> sentMessages) {
+        this.sentMessages = sentMessages;
     }
 }
