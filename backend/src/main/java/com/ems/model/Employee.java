@@ -15,50 +15,45 @@ public class Employee {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "department_id")
+    private Department department;
+
+    @Column(name = "full_name", nullable = false)
     private String name;
 
     @Column(nullable = false)
     private String email;
 
-    @Column(nullable = false)
+    @Column
     private String phone;
 
     @Column(nullable = false)
     private String role;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "department_id", nullable = false)
-    private Department department;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "contract_type", nullable = false)
+    private ContractType contractType;
+
+    @Column(name = "contract_start", nullable = false)
+    private LocalDate startDate;
+
+    @Column(name = "contract_end")
+    private LocalDate endDate;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ContractType contractType;
+    private Status status = Status.ACTIVE;
 
-    @Column(nullable = false)
-    private LocalDate startDate;
-
-    @Column
-    private LocalDate endDate;
-
-    @Column(nullable = false)
-    private boolean isActive = true;
-
-    @Column
-    private LocalDate inactiveFrom;
-
-    @Column
-    private LocalDate inactiveTo;
-
-    @Column(nullable = false)
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-
-    @OneToOne(mappedBy = "employee", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Salary salary;
+    @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL)
+    private List<Salary> salaries = new ArrayList<>();
 
     @OneToMany(mappedBy = "employee", cascade = CascadeType.ALL)
     private List<Leave> leaves = new ArrayList<>();
@@ -70,7 +65,48 @@ public class Employee {
     private List<EmployeeInactivity> inactivityPeriods = new ArrayList<>();
 
     public enum ContractType {
-        FULL_TIME, PART_TIME, REMOTE
+        FULL_TIME, PART_TIME, REMOTE;
+        
+        // Convert from database values
+        public static ContractType fromString(String str) {
+            if (str == null) return null;
+            
+            return switch (str.toLowerCase().replace('-', '_')) {
+                case "full_time" -> FULL_TIME;
+                case "part_time" -> PART_TIME;
+                case "remote" -> REMOTE;
+                default -> throw new IllegalArgumentException("Unknown contract type: " + str);
+            };
+        }
+        
+        // Convert to database values
+        public String toDatabaseValue() {
+            return switch (this) {
+                case FULL_TIME -> "full-time";
+                case PART_TIME -> "part-time";
+                case REMOTE -> "remote";
+            };
+        }
+    }
+    
+    public enum Status {
+        ACTIVE, INACTIVE;
+        
+        // Convert from database values
+        public static Status fromString(String str) {
+            if (str == null) return null;
+            
+            return switch (str.toLowerCase()) {
+                case "active" -> ACTIVE;
+                case "inactive" -> INACTIVE;
+                default -> throw new IllegalArgumentException("Unknown status: " + str);
+            };
+        }
+        
+        // Convert to database values
+        public String toDatabaseValue() {
+            return name().toLowerCase();
+        }
     }
 
     @PrePersist
@@ -152,27 +188,19 @@ public class Employee {
     }
 
     public boolean isActive() {
-        return isActive;
+        return status == Status.ACTIVE;
     }
 
     public void setActive(boolean isActive) {
-        this.isActive = isActive;
+        this.status = isActive ? Status.ACTIVE : Status.INACTIVE;
     }
-
-    public LocalDate getInactiveFrom() {
-        return inactiveFrom;
+    
+    public Status getStatus() {
+        return status;
     }
-
-    public void setInactiveFrom(LocalDate inactiveFrom) {
-        this.inactiveFrom = inactiveFrom;
-    }
-
-    public LocalDate getInactiveTo() {
-        return inactiveTo;
-    }
-
-    public void setInactiveTo(LocalDate inactiveTo) {
-        this.inactiveTo = inactiveTo;
+    
+    public void setStatus(Status status) {
+        this.status = status;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -191,12 +219,30 @@ public class Employee {
         this.user = user;
     }
 
-    public Salary getSalary() {
-        return salary;
+    public List<Salary> getSalaries() {
+        return salaries;
     }
 
-    public void setSalary(Salary salary) {
-        this.salary = salary;
+    public void setSalaries(List<Salary> salaries) {
+        this.salaries = salaries;
+    }
+    
+    // Get the most recent salary
+    public Salary getCurrentSalary() {
+        if (salaries == null || salaries.isEmpty()) {
+            return null;
+        }
+        
+        Salary latestSalary = null;
+        for (Salary salary : salaries) {
+            if (latestSalary == null || 
+                (salary.getSalaryYear() > latestSalary.getSalaryYear()) ||
+                (salary.getSalaryYear().equals(latestSalary.getSalaryYear()) && 
+                 salary.getSalaryMonth() > latestSalary.getSalaryMonth())) {
+                latestSalary = salary;
+            }
+        }
+        return latestSalary;
     }
 
     public List<Leave> getLeaves() {
@@ -248,7 +294,7 @@ public class Employee {
     
     // Check if employee is currently inactive based on inactivity records
     public boolean isCurrentlyInactive() {
-        if (!isActive) {
+        if (status == Status.INACTIVE) {
             return true;
         }
         
@@ -260,5 +306,37 @@ public class Employee {
             }
         }
         return false;
+    }
+    
+    // Get employee's most recent inactivity period (if any)
+    public EmployeeInactivity getCurrentInactivityPeriod() {
+        if (status == Status.ACTIVE || inactivityPeriods.isEmpty()) {
+            return null;
+        }
+        
+        LocalDate today = LocalDate.now();
+        for (EmployeeInactivity inactivity : inactivityPeriods) {
+            if (!today.isBefore(inactivity.getStartDate()) && 
+                (inactivity.getEndDate() == null || !today.isAfter(inactivity.getEndDate()))) {
+                return inactivity;
+            }
+        }
+        
+        // If no current inactivity, return the most recent one
+        return inactivityPeriods.stream()
+            .sorted((a, b) -> b.getStartDate().compareTo(a.getStartDate()))
+            .findFirst()
+            .orElse(null);
+    }
+    
+    // Get inactivity from/to for DTO
+    public LocalDate getInactiveFrom() {
+        EmployeeInactivity inactivity = getCurrentInactivityPeriod();
+        return inactivity != null ? inactivity.getStartDate() : null;
+    }
+    
+    public LocalDate getInactiveTo() {
+        EmployeeInactivity inactivity = getCurrentInactivityPeriod();
+        return inactivity != null ? inactivity.getEndDate() : null;
     }
 }

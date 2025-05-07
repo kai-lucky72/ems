@@ -3,7 +3,7 @@ package com.ems.model;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "deductions")
+@Table(name = "salary_deductions")
 public class Deduction {
 
     @Id
@@ -11,16 +11,16 @@ public class Deduction {
     private Long id;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "deduction_type", nullable = false)
     private DeductionType type;
 
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
+    @Column(name = "deduction_value", nullable = false)
     private Double value;
 
-    @Column(nullable = false)
+    @Column(name = "is_percentage", nullable = false)
     private boolean isPercentage;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -28,7 +28,36 @@ public class Deduction {
     private Salary salary;
 
     public enum DeductionType {
-        TAX, INSURANCE, CUSTOM
+        TAX, INSURANCE, CUSTOM;
+        
+        // Convert from database values
+        public static DeductionType fromString(String str) {
+            if (str == null) return null;
+            
+            return switch (str.toUpperCase()) {
+                case "TAX" -> TAX;
+                case "INSURANCE" -> INSURANCE;
+                case "CUSTOM" -> CUSTOM;
+                default -> throw new IllegalArgumentException("Unknown deduction type: " + str);
+            };
+        }
+        
+        // Convert to database values
+        public String toDatabaseValue() {
+            return name().toLowerCase();
+        }
+    }
+    
+    // Default constructor for JPA
+    public Deduction() {
+    }
+    
+    // Constructor for creating a new deduction
+    public Deduction(DeductionType type, String name, Double value, boolean isPercentage) {
+        this.type = type;
+        this.name = name;
+        this.value = value;
+        this.isPercentage = isPercentage;
     }
 
     // Getters and Setters
@@ -78,5 +107,24 @@ public class Deduction {
 
     public void setSalary(Salary salary) {
         this.salary = salary;
+    }
+    
+    // Calculate actual deduction amount
+    public Double calculateAmount(Double grossSalary) {
+        if (isPercentage) {
+            return grossSalary * (value / 100.0);
+        } else {
+            return value;
+        }
+    }
+    
+    // Create a copy of this deduction
+    public Deduction copy() {
+        Deduction copy = new Deduction();
+        copy.type = this.type;
+        copy.name = this.name;
+        copy.value = this.value;
+        copy.isPercentage = this.isPercentage;
+        return copy;
     }
 }

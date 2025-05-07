@@ -3,7 +3,9 @@ package com.ems.model;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "users")
@@ -19,7 +21,7 @@ public class User {
     @Column(unique = true, nullable = false)
     private String email;
 
-    @Column(name = "phone", nullable = false)
+    @Column(name = "phone_number")
     private String phoneNumber;
 
     @Column(name = "company_name", nullable = false)
@@ -28,8 +30,25 @@ public class User {
     @Column(name = "password_hash", nullable = false)
     private String password;
 
+    @Column(name = "reset_token")
+    private String resetToken;
+
+    @Column(name = "reset_token_expiry")
+    private LocalDateTime resetTokenExpiry;
+
+    @Column(name = "is_active", nullable = false)
+    private boolean isActive = true;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "last_login")
+    private LocalDateTime lastLogin;
+    
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "role")
+    private Set<String> roles = new HashSet<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Department> departments = new ArrayList<>();
@@ -43,6 +62,9 @@ public class User {
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
+        if (roles.isEmpty()) {
+            roles.add("USER");
+        }
     }
 
     // Getters and Setters
@@ -93,6 +115,30 @@ public class User {
     public void setPassword(String password) {
         this.password = password;
     }
+    
+    public String getResetToken() {
+        return resetToken;
+    }
+    
+    public void setResetToken(String resetToken) {
+        this.resetToken = resetToken;
+    }
+    
+    public LocalDateTime getResetTokenExpiry() {
+        return resetTokenExpiry;
+    }
+    
+    public void setResetTokenExpiry(LocalDateTime resetTokenExpiry) {
+        this.resetTokenExpiry = resetTokenExpiry;
+    }
+    
+    public boolean isActive() {
+        return isActive;
+    }
+    
+    public void setActive(boolean isActive) {
+        this.isActive = isActive;
+    }
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
@@ -100,6 +146,30 @@ public class User {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+    
+    public LocalDateTime getLastLogin() {
+        return lastLogin;
+    }
+    
+    public void setLastLogin(LocalDateTime lastLogin) {
+        this.lastLogin = lastLogin;
+    }
+    
+    public Set<String> getRoles() {
+        return roles;
+    }
+    
+    public void setRoles(Set<String> roles) {
+        this.roles = roles;
+    }
+    
+    public void addRole(String role) {
+        roles.add(role.toUpperCase());
+    }
+    
+    public boolean hasRole(String role) {
+        return roles.contains(role.toUpperCase());
     }
 
     public List<Department> getDepartments() {
@@ -124,5 +194,10 @@ public class User {
     
     public void setSentMessages(List<Message> sentMessages) {
         this.sentMessages = sentMessages;
+    }
+    
+    // Update last login
+    public void updateLastLogin() {
+        this.lastLogin = LocalDateTime.now();
     }
 }

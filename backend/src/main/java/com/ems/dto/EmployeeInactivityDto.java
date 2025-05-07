@@ -2,14 +2,37 @@ package com.ems.dto;
 
 import java.time.LocalDate;
 
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
+import com.ems.model.EmployeeInactivity.InactivityType;
+
 public class EmployeeInactivityDto {
+
     private Long id;
+
+    @NotNull(message = "Employee ID is required")
     private Long employeeId;
+
+    // This field is calculated, not required in input
     private String employeeName;
+
+    @NotNull(message = "Start date is required")
     private LocalDate startDate;
+
     private LocalDate endDate;
+
+    @Size(max = 1000, message = "Reason must not exceed 1000 characters")
     private String reason;
-    private int durationDays;
+
+    @NotNull(message = "Inactivity type is required")
+    private InactivityType type;
+
+    // This field is calculated, not required in input
+    private boolean isCurrent;
+
+    // This field is calculated, not required in input
+    private int durationInDays;
 
     // Getters and Setters
     public Long getId() {
@@ -60,11 +83,27 @@ public class EmployeeInactivityDto {
         this.reason = reason;
     }
 
-    public int getDurationDays() {
-        return durationDays;
+    public InactivityType getType() {
+        return type;
     }
 
-    public void setDurationDays(int durationDays) {
-        this.durationDays = durationDays;
+    public void setType(InactivityType type) {
+        this.type = type;
+    }
+
+    public boolean isCurrent() {
+        return isCurrent;
+    }
+
+    public void setCurrent(boolean isCurrent) {
+        this.isCurrent = isCurrent;
+    }
+
+    public int getDurationInDays() {
+        return durationInDays;
+    }
+
+    public void setDurationInDays(int durationInDays) {
+        this.durationInDays = durationInDays;
     }
 }

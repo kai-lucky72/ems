@@ -14,28 +14,47 @@ public class Department {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private String name;
-
-    @Column(nullable = false)
-    private Double budget;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private BudgetType budgetType;
-
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    @Column(nullable = false)
+    private String name;
+
+    @Column(name = "budget_amount", nullable = false)
+    private Double budget;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "budget_type", nullable = false)
+    private BudgetType budgetType;
+
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
 
     @OneToMany(mappedBy = "department", cascade = CascadeType.ALL)
     private List<Employee> employees = new ArrayList<>();
 
     public enum BudgetType {
-        MONTHLY, YEARLY
+        MONTHLY, YEARLY;
+        
+        // Convert from database values
+        public static BudgetType fromString(String str) {
+            if (str == null) return null;
+            
+            return switch (str.toLowerCase()) {
+                case "monthly" -> MONTHLY;
+                case "yearly" -> YEARLY;
+                default -> throw new IllegalArgumentException("Unknown budget type: " + str);
+            };
+        }
+        
+        // Convert to database values
+        public String toDatabaseValue() {
+            return switch (this) {
+                case MONTHLY -> "monthly";
+                case YEARLY -> "yearly";
+            };
+        }
     }
 
     @PrePersist
@@ -110,5 +129,19 @@ public class Department {
             }
         }
         return totalExpenses;
+    }
+    
+    // Calculate budget usage percentage
+    public Double calculateBudgetUsagePercentage() {
+        Double expenses = calculateCurrentExpenses();
+        if (budget == null || budget == 0) {
+            return 100.0; // Avoid division by zero
+        }
+        return (expenses / budget) * 100;
+    }
+    
+    // Check if budget is overrun
+    public boolean isBudgetOverrun() {
+        return calculateBudgetUsagePercentage() > 100;
     }
 }

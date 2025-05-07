@@ -2,6 +2,7 @@ package com.ems.service;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,7 +10,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.ems.dto.EmployeeInactivityDto;
-import com.ems.exception.BadRequestException;
 import com.ems.exception.ResourceNotFoundException;
 import com.ems.model.Employee;
 import com.ems.model.EmployeeInactivity;
@@ -22,133 +22,174 @@ public class EmployeeInactivityService {
 
     @Autowired
     private EmployeeInactivityRepository employeeInactivityRepository;
-    
+
     @Autowired
     private EmployeeRepository employeeRepository;
-    
-    @Autowired
-    private AuthService authService;
-    
-    @Transactional(readOnly = true)
-    public List<EmployeeInactivityDto> getAllInactivitiesForCurrentUser() {
-        User currentUser = authService.getCurrentUser();
-        List<EmployeeInactivity> inactivities = employeeInactivityRepository.findByUser(currentUser);
-        
+
+    public List<EmployeeInactivityDto> getAllInactivitiesByUser(User user) {
+        List<EmployeeInactivity> inactivities = employeeInactivityRepository.findByUser(user);
         return inactivities.stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
-    
-    @Transactional(readOnly = true)
-    public List<EmployeeInactivityDto> getInactivitiesForEmployee(Long employeeId) {
-        User currentUser = authService.getCurrentUser();
-        Employee employee = employeeRepository.findByIdAndUser(employeeId, currentUser)
-                .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + employeeId));
+
+    public List<EmployeeInactivityDto> getInactivitiesByEmployee(Long employeeId, User user) {
+        Employee employee = employeeRepository.findByIdAndUser(employeeId, user)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
         
         List<EmployeeInactivity> inactivities = employeeInactivityRepository.findByEmployee(employee);
-        
         return inactivities.stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
-    
-    @Transactional
-    public EmployeeInactivityDto createInactivity(EmployeeInactivityDto inactivityDto) {
-        User currentUser = authService.getCurrentUser();
+
+    public EmployeeInactivityDto getInactivityById(Long id, User user) {
+        EmployeeInactivity inactivity = employeeInactivityRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Inactivity record not found"));
         
-        // Validate employee
-        Employee employee = employeeRepository.findByIdAndUser(inactivityDto.getEmployeeId(), currentUser)
-                .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + inactivityDto.getEmployeeId()));
-        
-        // Validate dates
-        if (inactivityDto.getEndDate() != null && inactivityDto.getStartDate().isAfter(inactivityDto.getEndDate())) {
-            throw new BadRequestException("Start date must be before end date");
+        // Verify ownership
+        if (!inactivity.getEmployee().getUser().getId().equals(user.getId())) {
+            throw new ResourceNotFoundException("Inactivity record not found");
         }
+        
+        return convertToDto(inactivity);
+    }
+
+    public Optional<EmployeeInactivityDto> getCurrentInactivityByEmployee(Long employeeId, User user) {
+        Employee employee = employeeRepository.findByIdAndUser(employeeId, user)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
+        
+        Optional<EmployeeInactivity> currentInactivity = employeeInactivityRepository.findCurrentInactivityByEmployeeId(employeeId);
+        return currentInactivity.map(this::convertToDto);
+    }
+
+    @Transactional
+    public EmployeeInactivityDto createInactivity(EmployeeInactivityDto dto, User user) {
+        Employee employee = employeeRepository.findByIdAndUser(dto.getEmployeeId(), user)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
         
         EmployeeInactivity inactivity = new EmployeeInactivity();
         inactivity.setEmployee(employee);
-        inactivity.setStartDate(inactivityDto.getStartDate());
-        inactivity.setEndDate(inactivityDto.getEndDate());
-        inactivity.setReason(inactivityDto.getReason());
+        inactivity.setStartDate(dto.getStartDate());
+        inactivity.setEndDate(dto.getEndDate());
+        inactivity.setReason(dto.getReason());
+        inactivity.setType(dto.getType());
         
-        // Also update employee's active status
-        employee.setActive(false);
-        employee.setInactiveFrom(inactivityDto.getStartDate());
-        employee.setInactiveTo(inactivityDto.getEndDate());
-        employeeRepository.save(employee);
+        // When adding a new inactivity record without end date (indefinite), 
+        // close any existing open inactivity periods
+        if (dto.getEndDate() == null) {
+            List<EmployeeInactivity> openInactivities = employeeInactivityRepository.findByEmployeeId(employee.getId())
+                    .stream()
+                    .filter(ei -> ei.getEndDate() == null)
+                    .collect(Collectors.toList());
+            
+            // Close other open inactivity periods
+            LocalDate yesterday = LocalDate.now().minusDays(1);
+            for (EmployeeInactivity existingInactivity : openInactivities) {
+                existingInactivity.setEndDate(yesterday);
+                employeeInactivityRepository.save(existingInactivity);
+            }
+        }
         
         EmployeeInactivity savedInactivity = employeeInactivityRepository.save(inactivity);
-        return convertToDto(savedInactivity);
-    }
-    
-    @Transactional
-    public EmployeeInactivityDto updateInactivity(Long id, EmployeeInactivityDto inactivityDto) {
-        User currentUser = authService.getCurrentUser();
         
-        // Find inactivity record
-        EmployeeInactivity inactivity = employeeInactivityRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Inactivity record not found with id: " + id));
-        
-        // Check if inactivity belongs to current user's employee
-        if (!inactivity.getEmployee().getUser().getId().equals(currentUser.getId())) {
-            throw new ResourceNotFoundException("Inactivity record not found with id: " + id);
-        }
-        
-        // Validate dates
-        if (inactivityDto.getEndDate() != null && inactivityDto.getStartDate().isAfter(inactivityDto.getEndDate())) {
-            throw new BadRequestException("Start date must be before end date");
-        }
-        
-        inactivity.setStartDate(inactivityDto.getStartDate());
-        inactivity.setEndDate(inactivityDto.getEndDate());
-        inactivity.setReason(inactivityDto.getReason());
-        
-        // Update employee's inactivity dates if this is the current inactivity period
-        Employee employee = inactivity.getEmployee();
-        LocalDate today = LocalDate.now();
-        if (!employee.isActive() && 
-            (today.isEqual(inactivity.getStartDate()) || today.isAfter(inactivity.getStartDate())) && 
-            (inactivity.getEndDate() == null || today.isBefore(inactivity.getEndDate()) || today.isEqual(inactivity.getEndDate()))) {
-            
-            employee.setInactiveFrom(inactivityDto.getStartDate());
-            employee.setInactiveTo(inactivityDto.getEndDate());
+        // If employee is active but adding inactivity, set the employee to inactive
+        if (employee.isActive() && inactivity.isCurrent()) {
+            employee.setStatus(Employee.Status.INACTIVE);
             employeeRepository.save(employee);
         }
         
+        return convertToDto(savedInactivity);
+    }
+
+    @Transactional
+    public EmployeeInactivityDto updateInactivity(Long id, EmployeeInactivityDto dto, User user) {
+        EmployeeInactivity inactivity = employeeInactivityRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Inactivity record not found"));
+        
+        // Verify ownership
+        if (!inactivity.getEmployee().getUser().getId().equals(user.getId())) {
+            throw new ResourceNotFoundException("Inactivity record not found");
+        }
+        
+        // Update fields
+        inactivity.setStartDate(dto.getStartDate());
+        inactivity.setEndDate(dto.getEndDate());
+        inactivity.setReason(dto.getReason());
+        inactivity.setType(dto.getType());
+        
         EmployeeInactivity updatedInactivity = employeeInactivityRepository.save(inactivity);
+        
+        // Check and update employee status if needed
+        updateEmployeeStatus(inactivity.getEmployee());
+        
+        return convertToDto(updatedInactivity);
+    }
+
+    @Transactional
+    public void deleteInactivity(Long id, User user) {
+        EmployeeInactivity inactivity = employeeInactivityRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Inactivity record not found"));
+        
+        // Verify ownership
+        if (!inactivity.getEmployee().getUser().getId().equals(user.getId())) {
+            throw new ResourceNotFoundException("Inactivity record not found");
+        }
+        
+        Employee employee = inactivity.getEmployee();
+        employeeInactivityRepository.delete(inactivity);
+        
+        // Update employee status after deletion
+        updateEmployeeStatus(employee);
+    }
+    
+    @Transactional
+    public EmployeeInactivityDto endInactivity(Long id, LocalDate endDate, User user) {
+        EmployeeInactivity inactivity = employeeInactivityRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Inactivity record not found"));
+        
+        // Verify ownership
+        if (!inactivity.getEmployee().getUser().getId().equals(user.getId())) {
+            throw new ResourceNotFoundException("Inactivity record not found");
+        }
+        
+        inactivity.setEndDate(endDate);
+        EmployeeInactivity updatedInactivity = employeeInactivityRepository.save(inactivity);
+        
+        // Update employee status
+        Employee employee = inactivity.getEmployee();
+        updateEmployeeStatus(employee);
+        
         return convertToDto(updatedInactivity);
     }
     
-    @Transactional
-    public void deleteInactivity(Long id) {
-        User currentUser = authService.getCurrentUser();
-        
-        // Find inactivity record
-        EmployeeInactivity inactivity = employeeInactivityRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Inactivity record not found with id: " + id));
-        
-        // Check if inactivity belongs to current user's employee
-        if (!inactivity.getEmployee().getUser().getId().equals(currentUser.getId())) {
-            throw new ResourceNotFoundException("Inactivity record not found with id: " + id);
-        }
-        
-        // If this is the current inactivity and we're deleting it, update employee active status
-        Employee employee = inactivity.getEmployee();
-        LocalDate today = LocalDate.now();
-        if (!employee.isActive() && 
-            (today.isEqual(inactivity.getStartDate()) || today.isAfter(inactivity.getStartDate())) && 
-            (inactivity.getEndDate() == null || today.isBefore(inactivity.getEndDate()) || today.isEqual(inactivity.getEndDate()))) {
-            
-            employee.setActive(true);
-            employee.setInactiveFrom(null);
-            employee.setInactiveTo(null);
-            employeeRepository.save(employee);
-        }
-        
-        employeeInactivityRepository.delete(inactivity);
+    public List<EmployeeInactivityDto> getCurrentInactivities(User user) {
+        List<EmployeeInactivity> currentInactivities = employeeInactivityRepository.findCurrentInactivities(user);
+        return currentInactivities.stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
     }
     
-    // Helper method to convert Entity to DTO
+    public List<Object[]> getInactivitiesByMonth(User user) {
+        return employeeInactivityRepository.countInactivitiesByMonth(user);
+    }
+    
+    // Helper method to update employee status based on inactivity records
+    private void updateEmployeeStatus(Employee employee) {
+        boolean hasCurrentInactivity = employeeInactivityRepository.findByEmployee(employee)
+                .stream()
+                .anyMatch(EmployeeInactivity::isCurrent);
+        
+        if (hasCurrentInactivity && employee.isActive()) {
+            employee.setStatus(Employee.Status.INACTIVE);
+            employeeRepository.save(employee);
+        } else if (!hasCurrentInactivity && !employee.isActive()) {
+            employee.setStatus(Employee.Status.ACTIVE);
+            employeeRepository.save(employee);
+        }
+    }
+
+    // Convert Entity to DTO
     private EmployeeInactivityDto convertToDto(EmployeeInactivity inactivity) {
         EmployeeInactivityDto dto = new EmployeeInactivityDto();
         dto.setId(inactivity.getId());
@@ -157,7 +198,9 @@ public class EmployeeInactivityService {
         dto.setStartDate(inactivity.getStartDate());
         dto.setEndDate(inactivity.getEndDate());
         dto.setReason(inactivity.getReason());
-        dto.setDurationDays(inactivity.getDurationInDays());
+        dto.setType(inactivity.getType());
+        dto.setCurrent(inactivity.isCurrent());
+        dto.setDurationInDays(inactivity.getDurationInDays());
         return dto;
     }
 }
