@@ -70,6 +70,7 @@ com/ems/exception/GlobalExceptionHandler.class
 com/ems/model/Message.class
 com/ems/controller/LeaveController.class
 com/ems/security/JwtSecurityConfig.class
+com/ems/TestApp.class
 com/ems/model/Deduction$DeductionType.class
 com/ems/repository/EmployeeRepository.class
 com/ems/model/Leave.class

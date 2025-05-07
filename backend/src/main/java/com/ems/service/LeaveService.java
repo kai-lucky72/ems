@@ -159,7 +159,8 @@ public class LeaveService {
     @Transactional(readOnly = true)
     public List<LeaveDto> getCurrentLeaves() {
         User currentUser = authService.getCurrentUser();
-        List<Leave> leaves = leaveRepository.findCurrentLeavesByUser(currentUser, Status.APPROVED);
+        LocalDate currentDate = LocalDate.now();
+        List<Leave> leaves = leaveRepository.findCurrentLeavesByUser(currentUser, Status.APPROVED, currentDate);
         
         return leaves.stream()
                 .map(leave -> {
@@ -182,7 +183,8 @@ public class LeaveService {
     @Transactional(readOnly = true)
     public List<LeaveDto> getUpcomingLeaves() {
         User currentUser = authService.getCurrentUser();
-        List<Leave> leaves = leaveRepository.findUpcomingLeaves(currentUser);
+        LocalDate currentDate = LocalDate.now();
+        List<Leave> leaves = leaveRepository.findUpcomingLeaves(currentUser, currentDate);
         
         return leaves.stream()
                 .map(leave -> {
@@ -204,9 +206,10 @@ public class LeaveService {
     @Transactional(readOnly = true)
     public List<LeaveDto> getLeavesStartingSoon(int days) {
         User currentUser = authService.getCurrentUser();
-        LocalDate futureDate = LocalDate.now().plusDays(days);
+        LocalDate currentDate = LocalDate.now();
+        LocalDate futureDate = currentDate.plusDays(days);
         
-        List<Leave> leaves = leaveRepository.findLeavesStartingSoon(currentUser, futureDate);
+        List<Leave> leaves = leaveRepository.findLeavesStartingSoon(currentUser, currentDate, futureDate);
         
         return leaves.stream()
                 .map(leave -> {
@@ -228,9 +231,10 @@ public class LeaveService {
     @Transactional(readOnly = true)
     public List<LeaveDto> getLeavesEndingSoon(int days) {
         User currentUser = authService.getCurrentUser();
-        LocalDate futureDate = LocalDate.now().plusDays(days);
+        LocalDate currentDate = LocalDate.now();
+        LocalDate futureDate = currentDate.plusDays(days);
         
-        List<Leave> leaves = leaveRepository.findLeavesEndingSoon(currentUser, futureDate);
+        List<Leave> leaves = leaveRepository.findLeavesEndingSoon(currentUser, currentDate, futureDate);
         
         return leaves.stream()
                 .map(leave -> {
@@ -318,7 +322,8 @@ public class LeaveService {
         statistics.put("monthlyTrends", trendData);
         
         // Get current statistics
-        long currentOnLeave = leaveRepository.findCurrentLeavesByUser(currentUser, Status.APPROVED).size();
+        LocalDate currentDate = LocalDate.now();
+        long currentOnLeave = leaveRepository.findCurrentLeavesByUser(currentUser, Status.APPROVED, currentDate).size();
         List<Long> pendingRequestsList = leaveRepository.countByUserAndStatus(currentUser, Status.PENDING);
         long pendingRequests = pendingRequestsList.isEmpty() ? 0L : pendingRequestsList.get(0);
         

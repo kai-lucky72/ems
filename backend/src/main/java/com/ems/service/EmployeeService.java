@@ -375,7 +375,8 @@ public class EmployeeService {
     @Transactional(readOnly = true)
     public List<EmployeeDto> getCurrentlyInactiveEmployees() {
         User currentUser = authService.getCurrentUser();
-        List<Employee> employees = employeeRepository.findCurrentlyInactiveEmployees(currentUser);
+        LocalDate currentDate = LocalDate.now();
+        List<Employee> employees = employeeRepository.findCurrentlyInactiveEmployees(currentUser, currentDate);
         
         return employees.stream()
                 .map(employee -> {
@@ -401,9 +402,10 @@ public class EmployeeService {
     @Transactional(readOnly = true)
     public List<EmployeeDto> getEmployeesReturningFromInactivity(int daysThreshold) {
         User currentUser = authService.getCurrentUser();
-        LocalDate futureDate = LocalDate.now().plusDays(daysThreshold);
+        LocalDate currentDate = LocalDate.now();
+        LocalDate futureDate = currentDate.plusDays(daysThreshold);
         
-        List<Employee> employees = employeeRepository.findEmployeesReturningFromInactivity(currentUser, futureDate);
+        List<Employee> employees = employeeRepository.findEmployeesReturningFromInactivity(currentUser, currentDate, futureDate);
         
         return employees.stream()
                 .map(employee -> {
@@ -639,7 +641,8 @@ public class EmployeeService {
         
         if (!isNowActive) {
             // Check for existing open inactivity records
-            List<EmployeeInactivity> existingOpenInactivities = inactivityRepository.findOpenInactivitiesForEmployee(id);
+            LocalDate currentDate = LocalDate.now();
+            List<EmployeeInactivity> existingOpenInactivities = inactivityRepository.findOpenInactivitiesForEmployee(id, currentDate);
             
             // Close any existing open inactivity records
             LocalDate yesterday = LocalDate.now().minusDays(1);

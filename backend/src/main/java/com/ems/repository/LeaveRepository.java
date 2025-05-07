@@ -104,15 +104,15 @@ public interface LeaveRepository extends JpaRepository<Leave, Long> {
      * Find current active leaves for a specific employee
      */
     @Query("SELECT l FROM Leave l WHERE l.employee = :employee AND l.status = :status " +
-           "AND CURRENT_DATE BETWEEN l.startDate AND l.endDate")
-    List<Leave> findCurrentLeaves(@Param("employee") Employee employee, @Param("status") Status status);
+           "AND :currentDate BETWEEN l.startDate AND l.endDate")
+    List<Leave> findCurrentLeaves(@Param("employee") Employee employee, @Param("status") Status status, @Param("currentDate") LocalDate currentDate);
     
     /**
      * Find current active leaves for all employees in a user's company
      */
     @Query("SELECT l FROM Leave l WHERE l.employee.user = :user AND l.status = :status " +
-           "AND CURRENT_DATE BETWEEN l.startDate AND l.endDate")
-    List<Leave> findCurrentLeavesByUser(@Param("user") User user, @Param("status") Status status);
+           "AND :currentDate BETWEEN l.startDate AND l.endDate")
+    List<Leave> findCurrentLeavesByUser(@Param("user") User user, @Param("status") Status status, @Param("currentDate") LocalDate currentDate);
     
     /**
      * Find pending leave requests
@@ -130,8 +130,8 @@ public interface LeaveRepository extends JpaRepository<Leave, Long> {
      * Find upcoming leaves (approved but not yet started)
      */
     @Query("SELECT l FROM Leave l WHERE l.employee.user = :user AND l.status = 'APPROVED' " +
-           "AND l.startDate > CURRENT_DATE ORDER BY l.startDate ASC")
-    List<Leave> findUpcomingLeaves(@Param("user") User user);
+           "AND l.startDate > :currentDate ORDER BY l.startDate ASC")
+    List<Leave> findUpcomingLeaves(@Param("user") User user, @Param("currentDate") LocalDate currentDate);
     
     /**
      * Find recent leaves by date range
@@ -172,15 +172,15 @@ public interface LeaveRepository extends JpaRepository<Leave, Long> {
      * Find leaves that start within the next X days
      */
     @Query("SELECT l FROM Leave l WHERE l.employee.user = :user AND l.status = 'APPROVED' " +
-           "AND l.startDate BETWEEN CURRENT_DATE AND :futureDate ORDER BY l.startDate ASC")
-    List<Leave> findLeavesStartingSoon(@Param("user") User user, @Param("futureDate") LocalDate futureDate);
+           "AND l.startDate BETWEEN :currentDate AND :futureDate ORDER BY l.startDate ASC")
+    List<Leave> findLeavesStartingSoon(@Param("user") User user, @Param("currentDate") LocalDate currentDate, @Param("futureDate") LocalDate futureDate);
     
     /**
      * Find leaves that end within the next X days
      */
     @Query("SELECT l FROM Leave l WHERE l.employee.user = :user AND l.status = 'APPROVED' " +
-           "AND l.endDate BETWEEN CURRENT_DATE AND :futureDate ORDER BY l.endDate ASC")
-    List<Leave> findLeavesEndingSoon(@Param("user") User user, @Param("futureDate") LocalDate futureDate);
+           "AND l.endDate BETWEEN :currentDate AND :futureDate ORDER BY l.endDate ASC")
+    List<Leave> findLeavesEndingSoon(@Param("user") User user, @Param("currentDate") LocalDate currentDate, @Param("futureDate") LocalDate futureDate);
     
     /**
      * Search leaves by employee name

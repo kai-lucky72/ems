@@ -20,6 +20,10 @@ args = "Frontend Server"
 task = "workflow.run"
 args = "Backend Server"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Test Backend"
+
 [[workflows.workflow]]
 name = "Frontend Server"
 author = "agent"
@@ -38,6 +42,14 @@ task = "shell.exec"
 args = "cd backend && mvn clean spring-boot:run"
 waitForPort = 8000
 
+[[workflows.workflow]]
+name = "Test Backend"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd backend && mvn test"
+
 [deployment]
 run = ["sh", "-c", "cd frontend && npm install && next dev -H 0.0.0.0 -p 5000"]
 
@@ -46,13 +58,25 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 32821
+localPort = 33213
 externalPort = 3002
 
 [[ports]]
-localPort = 33771
+localPort = 34769
+externalPort = 3000
+
+[[ports]]
+localPort = 35183
+externalPort = 4200
+
+[[ports]]
+localPort = 40535
+externalPort = 3003
+
+[[ports]]
+localPort = 43731
 externalPort = 3001
 
 [[ports]]
-localPort = 44615
-externalPort = 3000
+localPort = 44957
+externalPort = 5000

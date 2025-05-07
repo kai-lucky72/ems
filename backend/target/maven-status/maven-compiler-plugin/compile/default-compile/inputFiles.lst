@@ -16,6 +16,7 @@
 /home/runner/workspace/backend/src/main/java/com/ems/repository/EmployeeRepository.java
 /home/runner/workspace/backend/src/main/java/com/ems/controller/EmployeeInactivityController.java
 /home/runner/workspace/backend/src/main/java/com/ems/config/JwtTokenUtil.java
+/home/runner/workspace/backend/src/main/java/com/ems/TestApp.java
 /home/runner/workspace/backend/src/main/java/com/ems/dto/MessageDto.java
 /home/runner/workspace/backend/src/main/java/com/ems/service/SalaryService.java
 /home/runner/workspace/backend/src/main/java/com/ems/dto/AuthResponseDto.java

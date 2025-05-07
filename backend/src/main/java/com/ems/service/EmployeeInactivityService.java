@@ -68,7 +68,8 @@ public class EmployeeInactivityService {
         Employee employee = employeeRepository.findByIdAndUser(employeeId, user)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found with id: " + employeeId));
         
-        List<EmployeeInactivity> currentInactivities = employeeInactivityRepository.findCurrentInactivityByEmployeeId(employeeId);
+        LocalDate currentDate = LocalDate.now();
+        List<EmployeeInactivity> currentInactivities = employeeInactivityRepository.findCurrentInactivityByEmployeeId(employeeId, currentDate);
         if (currentInactivities.isEmpty()) {
             return Optional.empty();
         }
@@ -237,7 +238,7 @@ public class EmployeeInactivityService {
     @Transactional(readOnly = true)
     public List<EmployeeInactivityDto> getCurrentInactivities(User user) {
         LocalDate today = LocalDate.now();
-        List<EmployeeInactivity> currentInactivities = employeeInactivityRepository.findCurrentInactivities(user);
+        List<EmployeeInactivity> currentInactivities = employeeInactivityRepository.findCurrentInactivities(user, today);
         return currentInactivities.stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
@@ -273,7 +274,8 @@ public class EmployeeInactivityService {
         statistics.put("countByType", countByType);
         
         // Current inactivities
-        List<Long> currentCountList = employeeInactivityRepository.countCurrentInactivities(user);
+        LocalDate currentDate = LocalDate.now();
+        List<Long> currentCountList = employeeInactivityRepository.countCurrentInactivities(user, currentDate);
         long currentCount = currentCountList.isEmpty() ? 0L : currentCountList.get(0);
         statistics.put("currentCount", currentCount);
         

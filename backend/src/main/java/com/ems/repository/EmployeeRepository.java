@@ -142,14 +142,15 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
     @Query("SELECT e FROM Employee e WHERE e.user = :user AND " + 
           "e.status = 'INACTIVE' AND " +
           "EXISTS (SELECT i FROM EmployeeInactivity i WHERE i.employee = e AND " +
-          "(i.endDate IS NULL OR i.endDate >= CURRENT_DATE) AND i.startDate <= CURRENT_DATE)")
-    List<Employee> findCurrentlyInactiveEmployees(@Param("user") User user);
+          "(i.endDate IS NULL OR i.endDate >= :currentDate) AND i.startDate <= :currentDate)")
+    List<Employee> findCurrentlyInactiveEmployees(@Param("user") User user, @Param("currentDate") LocalDate currentDate);
     
     // Employees returning from inactivity in the next X days
     @Query("SELECT e FROM Employee e WHERE e.user = :user AND e.status = 'INACTIVE' " +
            "AND EXISTS (SELECT i FROM EmployeeInactivity i WHERE i.employee = e " +
-           "AND i.endDate IS NOT NULL AND i.endDate BETWEEN CURRENT_DATE AND :futureDate)")
+           "AND i.endDate IS NOT NULL AND i.endDate BETWEEN :currentDate AND :futureDate)")
     List<Employee> findEmployeesReturningFromInactivity(
             @Param("user") User user, 
+            @Param("currentDate") LocalDate currentDate,
             @Param("futureDate") LocalDate futureDate);
 }
