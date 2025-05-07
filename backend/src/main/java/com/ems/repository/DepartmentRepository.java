@@ -66,33 +66,34 @@ public interface DepartmentRepository extends JpaRepository<Department, Long> {
     List<Department> findByUserAndBudgetType(@Param("user") User user, @Param("budgetType") BudgetType budgetType);
     
     @Query("SELECT SUM(d.budget) FROM Department d WHERE d.user = :user")
-    Double sumBudgetByUser(@Param("user") User user);
+    Optional<Double> sumBudgetByUser(@Param("user") User user);
     
     @Query("SELECT d.budgetType, SUM(d.budget) FROM Department d WHERE d.user = :user GROUP BY d.budgetType")
     List<Object[]> sumBudgetByTypeAndUser(@Param("user") User user);
     
     // Budget analysis
-    @Query("SELECT d FROM Department d WHERE d.user = :user AND " +
-           "(SELECT SUM(s.grossSalary) FROM Salary s JOIN s.employee e WHERE e.department = d) > d.budget")
+    @Query("SELECT d FROM Department d JOIN d.employees e JOIN e.salaries s WHERE d.user = :user " +
+           "GROUP BY d HAVING SUM(s.grossSalary) > d.budget")
     List<Department> findOverBudgetDepartments(@Param("user") User user);
     
-    @Query("SELECT d FROM Department d WHERE d.user = :user AND " + 
-           "(SELECT SUM(s.grossSalary) FROM Salary s JOIN s.employee e WHERE e.department = d) / d.budget > 0.9")
+    @Query("SELECT d FROM Department d JOIN d.employees e JOIN e.salaries s WHERE d.user = :user " +
+           "GROUP BY d HAVING SUM(s.grossSalary) / d.budget > 0.9")
     List<Department> findNearBudgetLimitDepartments(@Param("user") User user);
     
-    @Query("SELECT d, (SELECT SUM(s.grossSalary) FROM Salary s JOIN s.employee e WHERE e.department = d) AS totalSalary " +
-           "FROM Department d WHERE d.user = :user ORDER BY totalSalary DESC")
+    @Query("SELECT d, SUM(s.grossSalary) AS totalSalary " +
+           "FROM Department d JOIN d.employees e JOIN e.salaries s WHERE d.user = :user " +
+           "GROUP BY d ORDER BY SUM(s.grossSalary) DESC")
     List<Object[]> findDepartmentsByTotalSalary(@Param("user") User user);
     
     // Complex analytics
     @Query("SELECT d.name, COUNT(e), AVG(s.grossSalary) " +
-           "FROM Department d LEFT JOIN d.employees e LEFT JOIN e.salary s " +
+           "FROM Department d LEFT JOIN d.employees e LEFT JOIN e.salaries s " +
            "WHERE d.user = :user GROUP BY d.name")
     List<Object[]> getDepartmentEmployeeAndSalaryStats(@Param("user") User user);
     
-    @Query("SELECT d.name, d.budgetType, d.budget, " +
-           "(SELECT SUM(s.grossSalary) FROM Salary s JOIN s.employee e WHERE e.department = d) AS totalSalary " +
-           "FROM Department d WHERE d.user = :user")
+    @Query("SELECT d.name, d.budgetType, d.budget, SUM(s.grossSalary) " +
+           "FROM Department d LEFT JOIN d.employees e LEFT JOIN e.salaries s " +
+           "WHERE d.user = :user GROUP BY d.name, d.budgetType, d.budget")
     List<Object[]> getDepartmentBudgetReport(@Param("user") User user);
     
     // Search
@@ -101,7 +102,7 @@ public interface DepartmentRepository extends JpaRepository<Department, Long> {
     
     // Department growth
     @Query("SELECT d, COUNT(e) AS empCount FROM Department d JOIN d.employees e " +
-           "WHERE d.user = :user AND e.startDate >= CURRENT_DATE - 30 " +
+           "WHERE d.user = :user AND e.startDate >= FUNCTION('DATE_SUB', CURRENT_DATE, 30) " +
            "GROUP BY d.id ORDER BY empCount DESC")
     List<Object[]> findFastestGrowingDepartments(@Param("user") User user);
 }

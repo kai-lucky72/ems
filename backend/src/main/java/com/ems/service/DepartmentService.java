@@ -202,10 +202,11 @@ public class DepartmentService {
         
         // Basic stats
         long totalDepartments = departmentRepository.countByUser(currentUser);
-        Double totalBudget = departmentRepository.sumBudgetByUser(currentUser);
+        Optional<Double> totalBudgetOpt = departmentRepository.sumBudgetByUser(currentUser);
+        Double totalBudget = totalBudgetOpt.orElse(0.0);
         
         statistics.put("totalDepartments", totalDepartments);
-        statistics.put("totalBudget", totalBudget != null ? totalBudget : 0.0);
+        statistics.put("totalBudget", totalBudget);
         
         // Budget types breakdown
         List<Object[]> budgetTypeStats = departmentRepository.sumBudgetByTypeAndUser(currentUser);

@@ -69,7 +69,7 @@ public interface EmployeeInactivityRepository extends JpaRepository<EmployeeInac
     // Calculate average duration of completed inactivities (in days)
     @Query("SELECT AVG(FUNCTION('DATEDIFF', ei.endDate, ei.startDate) + 1) FROM EmployeeInactivity ei " +
            "WHERE ei.employee.user = :user AND ei.endDate IS NOT NULL")
-    Double calculateAverageDuration(@Param("user") User user);
+    Optional<Double> calculateAverageDuration(@Param("user") User user);
     
     // Count inactivities by month
     @Query("SELECT FUNCTION('YEAR', ei.startDate) AS year, FUNCTION('MONTH', ei.startDate) AS month, " +
@@ -106,4 +106,14 @@ public interface EmployeeInactivityRepository extends JpaRepository<EmployeeInac
     List<EmployeeInactivity> findEmployeesReturningWithinXDays(
             @Param("user") User user, 
             @Param("days") int days);
+            
+    // Find open inactivities for employee
+    @Query("SELECT ei FROM EmployeeInactivity ei WHERE ei.employee.id = :employeeId " +
+           "AND (ei.endDate IS NULL OR ei.endDate >= CURRENT_DATE) " +
+           "AND ei.startDate <= CURRENT_DATE")
+    List<EmployeeInactivity> findOpenInactivitiesForEmployee(@Param("employeeId") Long employeeId);
+    
+    // Find inactivities for employee ordered by start date descending
+    @Query("SELECT ei FROM EmployeeInactivity ei WHERE ei.employee.id = :employeeId ORDER BY ei.startDate DESC")
+    List<EmployeeInactivity> findByEmployeeIdOrderByStartDateDesc(@Param("employeeId") Long employeeId);
 }

@@ -26,8 +26,8 @@ public interface SalaryRepository extends JpaRepository<Salary, Long> {
     
     // Find most recent salary for an employee
     @Query("SELECT s FROM Salary s WHERE s.employee = :employee " +
-           "ORDER BY s.salaryYear DESC, s.salaryMonth DESC LIMIT 1")
-    Optional<Salary> findMostRecentByEmployee(@Param("employee") Employee employee);
+           "ORDER BY s.salaryYear DESC, s.salaryMonth DESC")
+    Optional<Salary> findMostRecentByEmployee(@Param("employee") Employee employee, Pageable pageable);
     
     // Find salaries by user (company owner/manager)
     @Query("SELECT s FROM Salary s WHERE s.employee.user = :user ORDER BY s.salaryYear DESC, s.salaryMonth DESC")
@@ -53,35 +53,35 @@ public interface SalaryRepository extends JpaRepository<Salary, Long> {
     
     // Aggregate queries for current month
     @Query("SELECT SUM(s.grossSalary) FROM Salary s WHERE s.employee.user = :user AND " +
-           "s.employee.status = :status AND s.salaryYear = EXTRACT(YEAR FROM CURRENT_DATE) AND " +
-           "s.salaryMonth = EXTRACT(MONTH FROM CURRENT_DATE)")
-    Double sumGrossSalaryByUserForCurrentMonth(@Param("user") User user, @Param("status") Status status);
+           "s.employee.status = :status AND s.salaryYear = FUNCTION('YEAR', CURRENT_DATE) AND " +
+           "s.salaryMonth = FUNCTION('MONTH', CURRENT_DATE)")
+    Optional<Double> sumGrossSalaryByUserForCurrentMonth(@Param("user") User user, @Param("status") Status status);
     
     @Query("SELECT SUM(s.netSalary) FROM Salary s WHERE s.employee.user = :user AND " +
-           "s.employee.status = :status AND s.salaryYear = EXTRACT(YEAR FROM CURRENT_DATE) AND " +
-           "s.salaryMonth = EXTRACT(MONTH FROM CURRENT_DATE)")
-    Double sumNetSalaryByUserForCurrentMonth(@Param("user") User user, @Param("status") Status status);
+           "s.employee.status = :status AND s.salaryYear = FUNCTION('YEAR', CURRENT_DATE) AND " +
+           "s.salaryMonth = FUNCTION('MONTH', CURRENT_DATE)")
+    Optional<Double> sumNetSalaryByUserForCurrentMonth(@Param("user") User user, @Param("status") Status status);
     
     @Query("SELECT AVG(s.grossSalary) FROM Salary s WHERE s.employee.user = :user AND " +
-           "s.employee.status = :status AND s.salaryYear = EXTRACT(YEAR FROM CURRENT_DATE) AND " +
-           "s.salaryMonth = EXTRACT(MONTH FROM CURRENT_DATE)")
-    Double averageGrossSalaryByUserForCurrentMonth(@Param("user") User user, @Param("status") Status status);
+           "s.employee.status = :status AND s.salaryYear = FUNCTION('YEAR', CURRENT_DATE) AND " +
+           "s.salaryMonth = FUNCTION('MONTH', CURRENT_DATE)")
+    Optional<Double> averageGrossSalaryByUserForCurrentMonth(@Param("user") User user, @Param("status") Status status);
     
     // Aggregate queries for specific month/year
     @Query("SELECT SUM(s.grossSalary) FROM Salary s WHERE s.employee.user = :user AND " +
            "s.employee.status = :status AND s.salaryYear = :year AND s.salaryMonth = :month")
-    Double sumGrossSalaryByUserForMonth(@Param("user") User user, @Param("status") Status status, 
+    Optional<Double> sumGrossSalaryByUserForMonth(@Param("user") User user, @Param("status") Status status, 
                                       @Param("year") Integer year, @Param("month") Integer month);
     
     @Query("SELECT SUM(s.netSalary) FROM Salary s WHERE s.employee.user = :user AND " +
            "s.employee.status = :status AND s.salaryYear = :year AND s.salaryMonth = :month")
-    Double sumNetSalaryByUserForMonth(@Param("user") User user, @Param("status") Status status, 
+    Optional<Double> sumNetSalaryByUserForMonth(@Param("user") User user, @Param("status") Status status, 
                                     @Param("year") Integer year, @Param("month") Integer month);
     
     // Department-based salary summaries
     @Query("SELECT d.name, SUM(s.grossSalary) FROM Salary s JOIN s.employee e JOIN e.department d " +
-           "WHERE e.user = :user AND e.status = :status AND s.salaryYear = EXTRACT(YEAR FROM CURRENT_DATE) " +
-           "AND s.salaryMonth = EXTRACT(MONTH FROM CURRENT_DATE) GROUP BY d.name")
+           "WHERE e.user = :user AND e.status = :status AND s.salaryYear = FUNCTION('YEAR', CURRENT_DATE) " +
+           "AND s.salaryMonth = FUNCTION('MONTH', CURRENT_DATE) GROUP BY d.name")
     List<Object[]> sumSalaryByDepartmentForCurrentMonth(@Param("user") User user, @Param("status") Status status);
     
     @Query("SELECT d.name, SUM(s.grossSalary) FROM Salary s JOIN s.employee e JOIN e.department d " +
@@ -92,14 +92,14 @@ public interface SalaryRepository extends JpaRepository<Salary, Long> {
     
     // Contract type based salary summaries
     @Query("SELECT e.contractType, AVG(s.grossSalary) FROM Salary s JOIN s.employee e " +
-           "WHERE e.user = :user AND e.status = :status AND s.salaryYear = EXTRACT(YEAR FROM CURRENT_DATE) " +
-           "AND s.salaryMonth = EXTRACT(MONTH FROM CURRENT_DATE) GROUP BY e.contractType")
+           "WHERE e.user = :user AND e.status = :status AND s.salaryYear = FUNCTION('YEAR', CURRENT_DATE) " +
+           "AND s.salaryMonth = FUNCTION('MONTH', CURRENT_DATE) GROUP BY e.contractType")
     List<Object[]> avgSalaryByContractTypeForCurrentMonth(@Param("user") User user, @Param("status") Status status);
     
     // Role-based salary summaries
     @Query("SELECT e.role, AVG(s.grossSalary), MIN(s.grossSalary), MAX(s.grossSalary) FROM Salary s JOIN s.employee e " +
-           "WHERE e.user = :user AND e.status = :status AND s.salaryYear = EXTRACT(YEAR FROM CURRENT_DATE) " +
-           "AND s.salaryMonth = EXTRACT(MONTH FROM CURRENT_DATE) GROUP BY e.role")
+           "WHERE e.user = :user AND e.status = :status AND s.salaryYear = FUNCTION('YEAR', CURRENT_DATE) " +
+           "AND s.salaryMonth = FUNCTION('MONTH', CURRENT_DATE) GROUP BY e.role")
     List<Object[]> salaryStatsByRoleForCurrentMonth(@Param("user") User user, @Param("status") Status status);
     
     // Month/Year summaries
@@ -117,12 +117,12 @@ public interface SalaryRepository extends JpaRepository<Salary, Long> {
     
     // Department-specific queries
     @Query("SELECT s FROM Salary s JOIN s.employee e WHERE e.department = :department " +
-           "AND s.salaryYear = EXTRACT(YEAR FROM CURRENT_DATE) AND s.salaryMonth = EXTRACT(MONTH FROM CURRENT_DATE)")
+           "AND s.salaryYear = FUNCTION('YEAR', CURRENT_DATE) AND s.salaryMonth = FUNCTION('MONTH', CURRENT_DATE)")
     List<Salary> findCurrentSalariesByDepartment(@Param("department") Department department);
     
     // Top earners
     @Query("SELECT s FROM Salary s WHERE s.employee.user = :user AND " +
-           "s.salaryYear = EXTRACT(YEAR FROM CURRENT_DATE) AND s.salaryMonth = EXTRACT(MONTH FROM CURRENT_DATE) " +
+           "s.salaryYear = FUNCTION('YEAR', CURRENT_DATE) AND s.salaryMonth = FUNCTION('MONTH', CURRENT_DATE) " +
            "ORDER BY s.grossSalary DESC")
     List<Salary> findTopEarners(@Param("user") User user, Pageable pageable);
     
@@ -135,7 +135,7 @@ public interface SalaryRepository extends JpaRepository<Salary, Long> {
     // Employee without current month salary
     @Query("SELECT e FROM Employee e WHERE e.user = :user AND e.status = :status AND " +
            "NOT EXISTS (SELECT 1 FROM Salary s WHERE s.employee = e AND " +
-           "s.salaryYear = EXTRACT(YEAR FROM CURRENT_DATE) AND s.salaryMonth = EXTRACT(MONTH FROM CURRENT_DATE))")
+           "s.salaryYear = FUNCTION('YEAR', CURRENT_DATE) AND s.salaryMonth = FUNCTION('MONTH', CURRENT_DATE))")
     List<Employee> findEmployeesWithoutCurrentMonthSalary(@Param("user") User user, @Param("status") Status status);
     
     // Count salaries by department
@@ -143,4 +143,9 @@ public interface SalaryRepository extends JpaRepository<Salary, Long> {
            "WHERE e.user = :user AND s.salaryYear = :year AND s.salaryMonth = :month " +
            "GROUP BY d.id, d.name")
     List<Object[]> countSalariesByDepartment(@Param("user") User user, @Param("year") Integer year, @Param("month") Integer month);
+    
+    // Find salaries for employee ordered by year and month
+    @Query("SELECT s FROM Salary s WHERE s.employee.id = :employeeId " +
+           "ORDER BY s.salaryYear DESC, s.salaryMonth DESC")
+    List<Salary> findByEmployeeIdOrderByYearDescMonthDesc(@Param("employeeId") Long employeeId);
 }

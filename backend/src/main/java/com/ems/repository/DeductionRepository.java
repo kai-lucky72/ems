@@ -1,6 +1,7 @@
 package com.ems.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -60,7 +61,7 @@ public interface DeductionRepository extends JpaRepository<Deduction, Long> {
     
     @Query("SELECT AVG(CASE WHEN d.isPercentage = true THEN (d.value / 100) * d.salary.grossSalary ELSE d.value END) " +
            "FROM Deduction d WHERE d.type = :type AND d.salary.employee.user = :user")
-    Double getAverageDeductionAmountByType(@Param("type") DeductionType type, @Param("user") User user);
+    Optional<Double> getAverageDeductionAmountByType(@Param("type") DeductionType type, @Param("user") User user);
     
     // Common deduction templates used by a company
     @Query("SELECT d.name, d.type, d.value, d.isPercentage, COUNT(d) AS frequency " +

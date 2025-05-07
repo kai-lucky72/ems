@@ -21,7 +21,7 @@ import com.ems.service.AuthService;
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(securedEnabled = true, jsr250Enabled = true)
-public class SecurityConfig {
+public class JwtSecurityConfig {
     
     private final JwtTokenProvider jwtTokenProvider;
     private final AuthService authService;
@@ -35,16 +35,16 @@ public class SecurityConfig {
         "/swagger-ui.html"
     };
     
-    public SecurityConfig(JwtTokenProvider jwtTokenProvider, AuthService authService) {
+    public JwtSecurityConfig(JwtTokenProvider jwtTokenProvider, AuthService authService) {
         this.jwtTokenProvider = jwtTokenProvider;
         this.authService = authService;
     }
     
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    @Bean(name = "jwtFilterChain")
+    public SecurityFilterChain jwtFilterChain(HttpSecurity http) throws Exception {
         // Configure AuthenticationManagerBuilder
         AuthenticationManagerBuilder authManagerBuilder = http.getSharedObject(AuthenticationManagerBuilder.class);
-        authManagerBuilder.userDetailsService(authService).passwordEncoder(passwordEncoder());
+        authManagerBuilder.userDetailsService(authService).passwordEncoder(jwtPasswordEncoder());
         
         // Get AuthenticationManager
         AuthenticationManager authenticationManager = authManagerBuilder.build();
@@ -66,22 +66,22 @@ public class SecurityConfig {
         return http.build();
     }
     
-    @Bean
-    public PasswordEncoder passwordEncoder() {
+    @Bean(name = "jwtPasswordEncoder")
+    public PasswordEncoder jwtPasswordEncoder() {
         return new BCryptPasswordEncoder(12);
     }
     
-    @Bean
-    public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
+    @Bean(name = "jwtAuthManager")
+    public AuthenticationManager jwtAuthManager(HttpSecurity http) throws Exception {
         return http.getSharedObject(AuthenticationManagerBuilder.class)
                 .userDetailsService(authService)
-                .passwordEncoder(passwordEncoder())
+                .passwordEncoder(jwtPasswordEncoder())
                 .and()
                 .build();
     }
     
-    @Bean
-    public CorsFilter corsFilter() {
+    @Bean(name = "jwtCorsFilter")
+    public CorsFilter jwtCorsFilter() {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);

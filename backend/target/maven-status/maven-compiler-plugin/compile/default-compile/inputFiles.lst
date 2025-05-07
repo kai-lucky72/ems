@@ -5,6 +5,7 @@
 /home/runner/workspace/backend/src/main/java/com/ems/model/Deduction.java
 /home/runner/workspace/backend/src/main/java/com/ems/service/EmployeeInactivityService.java
 /home/runner/workspace/backend/src/main/java/com/ems/config/SecurityConfig.java
+/home/runner/workspace/backend/src/main/java/com/ems/util/EmailUtilService.java
 /home/runner/workspace/backend/src/main/java/com/ems/controller/LeaveController.java
 /home/runner/workspace/backend/src/main/java/com/ems/repository/DepartmentRepository.java
 /home/runner/workspace/backend/src/main/java/com/ems/dto/EmployeeAnalytics.java
@@ -32,13 +33,12 @@
 /home/runner/workspace/backend/src/main/java/com/ems/repository/DeductionRepository.java
 /home/runner/workspace/backend/src/main/java/com/ems/dto/EmployeeInactivityDto.java
 /home/runner/workspace/backend/src/main/java/com/ems/service/AnalyticsService.java
-/home/runner/workspace/backend/src/main/java/com/ems/security/SecurityConfig.java
 /home/runner/workspace/backend/src/main/java/com/ems/service/AnalyticsServiceImpl.java
 /home/runner/workspace/backend/src/main/java/com/ems/exception/EmailException.java
+/home/runner/workspace/backend/src/main/java/com/ems/security/JwtSecurityConfig.java
 /home/runner/workspace/backend/src/main/java/com/ems/Application.java
 /home/runner/workspace/backend/src/main/java/com/ems/dto/LeaveAnalytics.java
 /home/runner/workspace/backend/src/main/java/com/ems/dto/EmployeeTimelineAnalytics.java
-/home/runner/workspace/backend/src/main/java/com/ems/util/EmailService.java
 /home/runner/workspace/backend/src/main/java/com/ems/service/EmailService.java
 /home/runner/workspace/backend/src/main/java/com/ems/dto/UserDto.java
 /home/runner/workspace/backend/src/main/java/com/ems/controller/DepartmentController.java

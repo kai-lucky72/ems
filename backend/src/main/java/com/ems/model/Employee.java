@@ -280,6 +280,11 @@ public class Employee {
         }
         return latestSalary;
     }
+    
+    // Alias method for salary retrieval
+    public Salary getSalary() {
+        return getCurrentSalary();
+    }
 
     public List<Leave> getLeaves() {
         return leaves;

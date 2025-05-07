@@ -273,8 +273,9 @@ public class EmployeeInactivityService {
         statistics.put("currentCount", currentCount);
         
         // Average duration (in days)
-        Double averageDuration = employeeInactivityRepository.calculateAverageDuration(user);
-        statistics.put("averageDuration", averageDuration != null ? averageDuration : 0.0);
+        Optional<Double> averageDurationOpt = employeeInactivityRepository.calculateAverageDuration(user);
+        Double averageDuration = averageDurationOpt.orElse(0.0);
+        statistics.put("averageDuration", averageDuration);
         
         // Inactivities by month
         List<Object[]> byMonth = employeeInactivityRepository.countInactivitiesByMonth(user);
